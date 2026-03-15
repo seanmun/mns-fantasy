@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0f;
+  --color-foreground: #f5f5f7;
+  --color-card: #141419;
+  --color-card-foreground: #f5f5f7;
+  --color-border: #2a2a35;
+  --color-muted: #1c1c24;
+  --color-muted-foreground: #8e8e9a;
+  --color-accent: #00ff87;
+  --color-accent-foreground: #0a0a0f;
+
+  --color-neon-green: #00ff87;
+  --color-neon-purple: #bf5af2;
+  --color-neon-cyan: #00e5ff;
+  --color-neon-pink: #ff2d55;
+
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --animate-pulse-neon: pulse-neon 2s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+
+  @keyframes pulse-neon {
+    0%, 100% { box-shadow: 0 0 5px var(--pulse-color), 0 0 20px var(--pulse-color); }
+    50% { box-shadow: 0 0 10px var(--pulse-color), 0 0 40px var(--pulse-color); }
+  }
+
+  @keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes slide-up {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+.hero-grain {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-grain > * {
+  position: relative;
+  z-index: 2;
+}
+
+.toggle-track {
+  position: relative;
+  display: inline-flex;
+  height: 1.5rem;
+  width: 2.75rem;
+  align-items: center;
+  border-radius: 9999px;
+  transition: background-color 200ms;
+}
+
+.toggle-thumb {
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  transform: translateX(0);
+  border-radius: 9999px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 200ms;
+}
