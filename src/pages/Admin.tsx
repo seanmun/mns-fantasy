@@ -18,25 +18,40 @@ interface SubscriberStats {
   }>
 }
 
-const ADMIN_IDS = (import.meta.env.VITE_ADMIN_USER_IDS || '').split(',').filter(Boolean)
-
 export function Admin() {
-  const { user } = useUser()
+  const { user, isLoaded } = useUser()
   const [stats, setStats] = useState<SubscriberStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [selectedGame, setSelectedGame] = useState(GAMES[0]?.slug || '')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [confirmSend, setConfirmSend] = useState(false)
 
-  const isAdmin = user?.id && ADMIN_IDS.includes(user.id)
-
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isLoaded) return
+    if (!user) {
       setLoading(false)
       return
     }
-    fetchStats()
-  }, [isAdmin])
+    checkAdmin()
+  }, [isLoaded, user])
+
+  const checkAdmin = async () => {
+    try {
+      const res = await fetch('/api/admin/check', {
+        headers: { Authorization: `Bearer ${await (window as any).Clerk?.session?.getToken()}` },
+      })
+      const data = await res.json()
+      setIsAdmin(data.isAdmin)
+      if (data.isAdmin) {
+        fetchStats()
+      } else {
+        setLoading(false)
+      }
+    } catch {
+      setLoading(false)
+    }
+  }
 
   const fetchStats = async () => {
     try {
