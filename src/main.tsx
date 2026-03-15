@@ -19,10 +19,7 @@ if (!clerkPubKey) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      {...(import.meta.env.PROD ? { proxyUrl: '/__clerk' } : {})}
-    >
+    <ClerkProvider publishableKey={clerkPubKey}>
       <BrowserRouter>
         <Routes>
           <Route element={<AppShell />}>
