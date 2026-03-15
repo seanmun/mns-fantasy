@@ -84,10 +84,10 @@ export function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          href="https://moneynneversleeps.app"
+          href="https://www.moneyneversleeps.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute bottom-6 right-6 text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors flex items-center gap-1"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors flex items-center gap-1"
         >
           Powered by MoneyNeverSleeps.app <ExternalLink size={10} />
         </motion.a>
@@ -138,7 +138,7 @@ export function Landing() {
             <p className="text-[var(--color-muted-foreground)] mb-6 max-w-md mx-auto">
               MNSfantasy is built by the team behind MoneyNeverSleeps.app — the fantasy platform where sports meets investing. Follow the money.
             </p>
-            <a href="https://moneynneversleeps.app" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.moneyneversleeps.app/" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary">
                 Visit MoneyNeverSleeps.app <ArrowRight size={14} className="ml-2" />
               </Button>
