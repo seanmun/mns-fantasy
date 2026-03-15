@@ -70,7 +70,6 @@ body {
 }
 
 .hero-grain > * {
-  position: relative;
   z-index: 2;
 }
 

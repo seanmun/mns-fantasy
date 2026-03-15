@@ -25,10 +25,10 @@ export function GameCard({ game, onNotify }: GameCardProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
-      className="relative group"
+      className="relative group h-full"
     >
       <div
-        className="relative bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6 transition-all duration-300 hover:border-opacity-60 overflow-hidden"
+        className="relative bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6 transition-all duration-300 hover:border-opacity-60 overflow-hidden h-full flex flex-col"
         style={{
           borderLeftWidth: '3px',
           borderLeftColor: game.accentColor,
@@ -44,7 +44,7 @@ export function GameCard({ game, onNotify }: GameCardProps) {
           />
         )}
 
-        <div className="relative">
+        <div className="relative flex flex-col flex-1">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{game.icon}</span>
@@ -55,9 +55,9 @@ export function GameCard({ game, onNotify }: GameCardProps) {
             </Badge>
           </div>
 
-          <p className="text-sm text-[var(--color-muted-foreground)] mb-4">{game.description}</p>
+          <p className="text-sm text-[var(--color-muted-foreground)] mb-4 flex-1">{game.description}</p>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto">
             <div className="text-xs text-[var(--color-muted-foreground)]">
               {formatDate(game.startDate)} &ndash; {formatDate(game.endDate)}
               {countdown !== null && countdown > 0 && (
