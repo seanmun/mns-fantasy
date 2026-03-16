@@ -1,28 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Users, ListChecks, Trophy, ExternalLink } from 'lucide-react'
+import { ArrowRight, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { GameGrid } from '@/components/games/GameGrid'
 import { NotifyModal } from '@/components/games/NotifyModal'
 import { GAMES, type GameConfig } from '@/lib/games-config'
-
-const steps = [
-  {
-    icon: Users,
-    title: 'Join a League',
-    description: 'Create or get invited to a private or public league.',
-  },
-  {
-    icon: ListChecks,
-    title: 'Pick Your Roster',
-    description: 'Select players within structured tiers.',
-  },
-  {
-    icon: Trophy,
-    title: 'Win the Season',
-    description: 'Track live stats, climb the standings.',
-  },
-]
 
 export function Landing() {
   const [notifyModal, setNotifyModal] = useState(false)
@@ -38,7 +20,7 @@ export function Landing() {
   return (
     <>
       {/* Hero */}
-      <section className="hero-grain relative min-h-[80vh] flex items-center justify-center bg-gradient-to-b from-[var(--color-background)] via-[#0d0d14] to-[var(--color-background)]">
+      <section className="hero-grain relative min-h-[50vh] flex items-center justify-center bg-gradient-to-b from-[var(--color-background)] via-[#0d0d14] to-[var(--color-background)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -56,7 +38,7 @@ export function Landing() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="text-lg sm:text-xl text-[var(--color-muted-foreground)] mb-8 max-w-xl mx-auto"
           >
-            Pick players. Track stats. Win your league. New games every season.
+            Bespoke fantasy competitions built for the biggest events in sports.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -91,33 +73,6 @@ export function Landing() {
         >
           Powered by MoneyNeverSleeps.app <ExternalLink size={10} />
         </motion.a>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 px-4 sm:px-6 bg-[var(--color-muted)]">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="font-display text-4xl sm:text-5xl text-center mb-12">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="text-center"
-              >
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-neon-green/10 text-neon-green mb-4">
-                  <step.icon size={24} />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                <p className="text-sm text-[var(--color-muted-foreground)]">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* Games Grid */}

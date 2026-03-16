@@ -3,30 +3,36 @@ import { Link } from 'react-router-dom'
 export function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-background)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-xl tracking-wide text-[var(--color-foreground)]">
-              MNS<span className="text-neon-green">fantasy</span>
-            </span>
-          </div>
-
-          <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--color-muted-foreground)]">
-            <Link to="/" className="hover:text-[var(--color-foreground)] transition-colors">Home</Link>
-            <a href="#games" className="hover:text-[var(--color-foreground)] transition-colors">All Games</a>
-            <Link to="/preferences" className="hover:text-[var(--color-foreground)] transition-colors">Preferences</Link>
-            <Link to="/sign-in" className="hover:text-[var(--color-foreground)] transition-colors">Sign In</Link>
-          </nav>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--color-muted-foreground)]">
-          <p>&copy; {new Date().getFullYear()} MNSfantasy &middot; Powered by MoneyNeverSleeps.app</p>
-          <div className="flex items-center gap-4">
-            <span className="hover:text-[var(--color-foreground)] cursor-pointer transition-colors">Privacy Policy</span>
-            <span className="hover:text-[var(--color-foreground)] cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-[var(--color-foreground)] cursor-pointer transition-colors">CAN-SPAM</span>
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 text-center">
+        <p className="text-sm text-[var(--color-muted-foreground)] mb-2">
+          <span className="font-display text-[var(--color-foreground)]">
+            MNS<span className="text-neon-green">fantasy</span>
+          </span>
+          {' '}&mdash; Fantasy Sports That Never Sleep
+        </p>
+        <Link to="/changelog" className="inline-block text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors mb-4">
+          v0.1.0 BETA
+        </Link>
+        <nav className="flex flex-wrap items-center justify-center gap-1 text-xs text-[var(--color-muted-foreground)] mb-4">
+          <Link to="/about" className="hover:text-[var(--color-foreground)] transition-colors">
+            About
+          </Link>
+          <span>&middot;</span>
+          <Link to="/privacy" className="hover:text-[var(--color-foreground)] transition-colors">
+            Privacy
+          </Link>
+          <span>&middot;</span>
+          <span className="hover:text-[var(--color-foreground)] cursor-pointer transition-colors">
+            Terms
+          </span>
+          <span>&middot;</span>
+          <Link to="/changelog" className="hover:text-[var(--color-foreground)] transition-colors">
+            Changelog
+          </Link>
+        </nav>
+        <p className="text-xs text-[var(--color-muted-foreground)]">
+          &copy; {new Date().getFullYear()} MNS &middot; Built by <a href="https://www.seanmun.com/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-foreground)] transition-colors">Sean Munley</a>
+        </p>
       </div>
     </footer>
   )

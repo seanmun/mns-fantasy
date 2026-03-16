@@ -8,6 +8,9 @@ import { Preferences } from '@/pages/Preferences'
 import { SignIn } from '@/pages/SignIn'
 import { SignUp } from '@/pages/SignUp'
 import { Admin } from '@/pages/Admin'
+import { About } from '@/pages/About'
+import { Privacy } from '@/pages/Privacy'
+import { Changelog } from '@/pages/Changelog'
 import { NotFound } from '@/pages/NotFound'
 import './index.css'
 
@@ -27,6 +30,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/preferences" element={<Preferences />} />
             <Route path="/sign-in/*" element={<SignIn />} />
             <Route path="/sign-up/*" element={<SignUp />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/changelog" element={<Changelog />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Route>

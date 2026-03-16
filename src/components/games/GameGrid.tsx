@@ -13,7 +13,7 @@ export function GameGrid({ onNotify }: GameGridProps) {
   const sortedGames = [...activeGames, ...upcomingGames, ...completedGames]
 
   return (
-    <section id="games" className="py-20 px-4 sm:px-6">
+    <section id="games" className="py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <h2 className="font-display text-4xl sm:text-5xl text-center mb-4">
           Active &amp; Upcoming Games
