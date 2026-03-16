@@ -22,7 +22,17 @@ if (!clerkPubKey) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      allowedRedirectOrigins={[
+        'https://ncaa.mnsfantasy.com',
+        'https://wncaa.mnsfantasy.com',
+        'https://pga.mnsfantasy.com',
+        'https://nfl.mnsfantasy.com',
+        'http://localhost:5173',
+        'http://localhost:5174',
+      ]}
+    >
       <BrowserRouter>
         <Routes>
           <Route element={<AppShell />}>
