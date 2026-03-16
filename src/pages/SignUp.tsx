@@ -1,12 +1,28 @@
 import { SignUp as ClerkSignUp } from '@clerk/clerk-react'
+import { useSearchParams } from 'react-router-dom'
 
 export function SignUp() {
+  const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get('redirect_url')
+
+  let forceUrl: string | undefined
+  if (redirectUrl) {
+    try {
+      const url = new URL(redirectUrl)
+      url.searchParams.set('__clerk_synced', 'false')
+      forceUrl = url.toString()
+    } catch {
+      forceUrl = redirectUrl
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-12 px-4">
       <ClerkSignUp
         routing="path"
         path="/sign-up"
         signInUrl="/sign-in"
+        forceRedirectUrl={forceUrl}
         fallbackRedirectUrl="/preferences"
         appearance={{
           elements: {

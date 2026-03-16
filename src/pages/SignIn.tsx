@@ -1,12 +1,31 @@
 import { SignIn as ClerkSignIn } from '@clerk/clerk-react'
+import { useSearchParams } from 'react-router-dom'
 
 export function SignIn() {
+  const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get('redirect_url')
+
+  // When a satellite subdomain sends users here for sign-in, redirect_url
+  // points back to the satellite. We must append __clerk_synced=false so the
+  // satellite's ClerkProvider triggers a FAPI sync to establish the session.
+  let forceUrl: string | undefined
+  if (redirectUrl) {
+    try {
+      const url = new URL(redirectUrl)
+      url.searchParams.set('__clerk_synced', 'false')
+      forceUrl = url.toString()
+    } catch {
+      forceUrl = redirectUrl
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-12 px-4">
       <ClerkSignIn
         routing="path"
         path="/sign-in"
         signUpUrl="/sign-up"
+        forceRedirectUrl={forceUrl}
         fallbackRedirectUrl="/preferences"
         appearance={{
           elements: {
