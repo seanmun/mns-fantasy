@@ -6,18 +6,11 @@ export function SignIn() {
   const redirectUrl = searchParams.get('redirect_url')
 
   // When a satellite subdomain sends users here for sign-in, redirect_url
-  // points back to the satellite. We must append __clerk_synced=false so the
-  // satellite's ClerkProvider triggers a FAPI sync to establish the session.
-  let forceUrl: string | undefined
-  if (redirectUrl) {
-    try {
-      const url = new URL(redirectUrl)
-      url.searchParams.set('__clerk_synced', 'false')
-      forceUrl = url.toString()
-    } catch {
-      forceUrl = redirectUrl
-    }
-  }
+  // points back to the satellite. Pass it through as-is so Clerk's satellite
+  // mode can do the proper FAPI redirect to establish the session cookie.
+  // IMPORTANT: Do NOT append __clerk_synced — that would tell the satellite
+  // to skip the FAPI redirect, preventing the session from being established.
+  const forceUrl = redirectUrl || undefined
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-12 px-4">

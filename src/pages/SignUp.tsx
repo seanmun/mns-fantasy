@@ -5,16 +5,9 @@ export function SignUp() {
   const [searchParams] = useSearchParams()
   const redirectUrl = searchParams.get('redirect_url')
 
-  let forceUrl: string | undefined
-  if (redirectUrl) {
-    try {
-      const url = new URL(redirectUrl)
-      url.searchParams.set('__clerk_synced', 'false')
-      forceUrl = url.toString()
-    } catch {
-      forceUrl = redirectUrl
-    }
-  }
+  // Pass satellite redirect_url through as-is — do NOT append __clerk_synced.
+  // The satellite needs to do its own FAPI redirect to establish the session.
+  const forceUrl = redirectUrl || undefined
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-12 px-4">
