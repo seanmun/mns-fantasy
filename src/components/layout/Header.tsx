@@ -18,6 +18,7 @@ export function Header() {
           <Link to="/" className="hover:text-[var(--color-foreground)] transition-colors">Home</Link>
           <a href="#games" className="hover:text-[var(--color-foreground)] transition-colors">Games</a>
           <SignedIn>
+            <Link to="/dashboard" className="hover:text-[var(--color-foreground)] transition-colors">Dashboard</Link>
             <Link to="/preferences" className="hover:text-[var(--color-foreground)] transition-colors">Preferences</Link>
           </SignedIn>
         </nav>

@@ -29,17 +29,20 @@ export const marketingGamePrefs = pgTable('marketing_game_prefs', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// Read-only references to game app tables
+// Read-only references to game app tables (authoritative schema lives in each game app)
 export const leagues = pgTable('leagues', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   gameSlug: text('game_slug').notNull(),
+  createdAt: timestamp('created_at'),
 })
 
 export const leagueMembers = pgTable('league_members', {
   id: uuid('id').defaultRandom().primaryKey(),
   leagueId: uuid('league_id').notNull(),
   userId: text('user_id').notNull(),
+  teamName: text('team_name'),
+  joinedAt: timestamp('joined_at'),
 })
 
 // Types
