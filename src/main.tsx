@@ -28,10 +28,13 @@ createRoot(document.getElementById('root')!).render(
       allowedRedirectOrigins={[
         'https://ncaa.mnsfantasy.com',
         'https://wncaa.mnsfantasy.com',
+        'https://golf.mnsfantasy.com',
         'https://pga.mnsfantasy.com',
         'https://nfl.mnsfantasy.com',
         'http://localhost:5173',
         'http://localhost:5174',
+        'http://localhost:5175',
+        'http://localhost:5176',
       ]}
     >
       <BrowserRouter>

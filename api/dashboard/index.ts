@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { clerkClient } from '@clerk/clerk-sdk-node'
+import { verifyToken } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, inArray, sql } from 'drizzle-orm'
@@ -16,8 +16,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const session = await clerkClient.sessions.getSession(sessionToken)
-    const userId = session.userId
+    const payload = await verifyToken(sessionToken, {
+      secretKey: process.env.CLERK_SECRET_KEY!,
+    })
+    const userId = payload.sub
 
     const sqlClient = neon(process.env.DATABASE_URL!)
     const db = drizzle(sqlClient)
