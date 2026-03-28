@@ -3,7 +3,7 @@ import { verifyToken } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, inArray, sql } from 'drizzle-orm'
-import { leagueMembers, leagues } from '../../src/lib/db/schema'
+import { leagueMembers, leagues } from '../../src/lib/db/schema.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

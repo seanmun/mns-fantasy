@@ -3,7 +3,7 @@ import { verifyToken } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, isNull, isNotNull, desc, sql, count } from 'drizzle-orm'
-import { marketingSubscribers } from '../../src/lib/db/schema'
+import { marketingSubscribers } from '../../src/lib/db/schema.js'
 
 const ADMIN_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean)
 

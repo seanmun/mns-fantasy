@@ -3,7 +3,7 @@ import { createHmac } from 'crypto'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq } from 'drizzle-orm'
-import { marketingSubscribers } from '../src/lib/db/schema'
+import { marketingSubscribers } from '../src/lib/db/schema.js'
 
 function verifyUnsubscribeToken(token: string): { userId: string; valid: boolean } {
   try {

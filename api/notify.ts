@@ -3,8 +3,8 @@ import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
-import { marketingSubscribers } from '../src/lib/db/schema'
-import { GAMES } from '../src/lib/games-config'
+import { marketingSubscribers } from '../src/lib/db/schema.js'
+import { GAMES } from '../src/lib/games-config.js'
 
 // Simple in-memory rate limiter
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()

@@ -5,9 +5,9 @@ import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, and, isNull } from 'drizzle-orm'
 import { Resend } from 'resend'
-import { marketingSubscribers } from '../../src/lib/db/schema'
-import { GAMES } from '../../src/lib/games-config'
-import { buildGameLaunchEmail } from '../../src/emails/GameLaunchEmail'
+import { marketingSubscribers } from '../../src/lib/db/schema.js'
+import { GAMES } from '../../src/lib/games-config.js'
+import { buildGameLaunchEmail } from '../../src/emails/GameLaunchEmail.js'
 
 const ADMIN_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean)
 

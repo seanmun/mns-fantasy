@@ -3,7 +3,7 @@ import { verifyToken, createClerkClient } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq } from 'drizzle-orm'
-import { marketingSubscribers } from '../../src/lib/db/schema'
+import { marketingSubscribers } from '../../src/lib/db/schema.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PUT') {
