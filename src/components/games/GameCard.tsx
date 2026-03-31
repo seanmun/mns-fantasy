@@ -59,7 +59,14 @@ export function GameCard({ game, onNotify }: GameCardProps) {
 
           <div className="flex items-center justify-between mt-auto">
             <div className="text-xs text-[var(--color-muted-foreground)]">
-              {formatDate(game.startDate)} &ndash; {formatDate(game.endDate)}
+              {(() => {
+                const s = new Date(game.startDate)
+                const e = new Date(game.endDate)
+                if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear() && e.getDate() - s.getDate() > 20) {
+                  return s.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                }
+                return `${formatDate(game.startDate)} – ${formatDate(game.endDate)}`
+              })()}
               {countdown !== null && countdown > 0 && (
                 <span className="ml-2 text-neon-purple font-medium">
                   {countdown} day{countdown !== 1 ? 's' : ''} away
