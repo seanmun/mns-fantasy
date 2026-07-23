@@ -36,24 +36,9 @@ export const marketingGamePrefs = pgTable('marketing_game_prefs', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// Read-only references to NCAA game tables, which live in the `ncaa`
-// Postgres schema (authoritative schema lives in ncaa-mns-fantasy).
-const ncaaSchema = pgSchema('ncaa')
-
-export const leagues = ncaaSchema.table('leagues', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  gameSlug: text('game_slug').notNull(),
-  createdAt: timestamp('created_at'),
-})
-
-export const leagueMembers = ncaaSchema.table('league_members', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  leagueId: uuid('league_id').notNull(),
-  userId: text('user_id').notNull(),
-  teamName: text('team_name'),
-  joinedAt: timestamp('joined_at'),
-})
+// Cross-game league reads go through the hub contract views
+// (<game>.hub_leagues / <game>.hub_members) — see src/lib/db/hubViews.ts
+// and scripts/hub-views.sql. No direct game-table references here.
 
 // Types
 export type MarketingSubscriber = typeof marketingSubscribers.$inferSelect

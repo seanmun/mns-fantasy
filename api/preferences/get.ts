@@ -2,8 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { verifyToken } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { eq, and } from 'drizzle-orm'
-import { marketingSubscribers, marketingGamePrefs, leagueMembers, leagues } from '../../src/lib/db/schema.js'
+import { eq } from 'drizzle-orm'
+import { marketingSubscribers, marketingGamePrefs } from '../../src/lib/db/schema.js'
+import { getUserGameSlugs } from '../../src/lib/db/hubViews.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -35,14 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from(marketingGamePrefs)
       .where(eq(marketingGamePrefs.userId, userId))
 
-    // Fetch joined games via league_members -> leagues
-    const joinedLeagues = await db
-      .select({ gameSlug: leagues.gameSlug })
-      .from(leagueMembers)
-      .innerJoin(leagues, eq(leagueMembers.leagueId, leagues.id))
-      .where(eq(leagueMembers.userId, userId))
-
-    const joinedGames = [...new Set(joinedLeagues.map((l) => l.gameSlug))]
+    // Fetch joined games across every game schema (hub contract views)
+    const joinedGames = await getUserGameSlugs(sql, userId)
 
     const gamePrefsBySlug: Record<string, any> = {}
     for (const pref of gamePrefs) {

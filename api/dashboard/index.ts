@@ -1,9 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { verifyToken } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
-import { drizzle } from 'drizzle-orm/neon-http'
-import { eq, inArray, sql } from 'drizzle-orm'
-import { leagueMembers, leagues } from '../../src/lib/db/schema.js'
+import { getUserLeagues } from '../../src/lib/db/hubViews.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -22,39 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userId = payload.sub
 
     const sqlClient = neon(process.env.DATABASE_URL!)
-    const db = drizzle(sqlClient)
-
-    // Get all leagues the user belongs to across every game
-    const userLeagues = await db
-      .select({
-        leagueId: leagues.id,
-        leagueName: leagues.name,
-        gameSlug: leagues.gameSlug,
-        teamName: leagueMembers.teamName,
-        joinedAt: leagueMembers.joinedAt,
-      })
-      .from(leagueMembers)
-      .innerJoin(leagues, eq(leagueMembers.leagueId, leagues.id))
-      .where(eq(leagueMembers.userId, userId))
-
-    // Batch-fetch member counts for all matched leagues
-    const leagueIds = userLeagues.map((l) => l.leagueId)
-    const memberCounts: Record<string, number> = {}
-
-    if (leagueIds.length > 0) {
-      const counts = await db
-        .select({
-          leagueId: leagueMembers.leagueId,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(leagueMembers)
-        .where(inArray(leagueMembers.leagueId, leagueIds))
-        .groupBy(leagueMembers.leagueId)
-
-      for (const c of counts) {
-        memberCounts[c.leagueId] = c.count
-      }
-    }
+    const userLeagues = await getUserLeagues(sqlClient, userId)
 
     // Group by game slug
     const gameMap: Record<
@@ -64,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         leagues: Array<{
           id: string
           name: string
+          format: 'season' | 'event'
           teamName: string | null
           memberCount: number
           joinedAt: string | null
@@ -72,15 +39,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     > = {}
 
     for (const league of userLeagues) {
-      if (!gameMap[league.gameSlug]) {
-        gameMap[league.gameSlug] = { gameSlug: league.gameSlug, leagues: [] }
+      if (!gameMap[league.game_slug]) {
+        gameMap[league.game_slug] = { gameSlug: league.game_slug, leagues: [] }
       }
-      gameMap[league.gameSlug].leagues.push({
-        id: league.leagueId,
-        name: league.leagueName,
-        teamName: league.teamName,
-        memberCount: memberCounts[league.leagueId] || 0,
-        joinedAt: league.joinedAt?.toISOString() || null,
+      gameMap[league.game_slug].leagues.push({
+        id: league.id,
+        name: league.name,
+        format: league.format,
+        teamName: league.team_name,
+        memberCount: league.member_count,
+        joinedAt: league.joined_at ? new Date(league.joined_at).toISOString() : null,
       })
     }
 
