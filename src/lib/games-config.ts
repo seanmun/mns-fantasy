@@ -3,6 +3,8 @@ export interface GameConfig {
   // Game-app slugs that map to this card (apps may use finer-grained
   // slugs, e.g. ncaa-mens-2026/ncaa-womens-2026 under one NCAA card).
   aliases?: string[]
+  // Display qualifier per alias, e.g. "Men's" / "Women's".
+  aliasLabels?: Record<string, string>
   name: string
   shortName: string
   description: string
@@ -20,6 +22,7 @@ export const GAMES: GameConfig[] = [
   {
     slug: 'ncaa-2026',
     aliases: ['ncaa-mens-2026', 'ncaa-womens-2026', 'ncaa-2025'],
+    aliasLabels: { 'ncaa-mens-2026': "Men's", 'ncaa-womens-2026': "Women's" },
     name: 'March Madness',
     shortName: 'NCAA',
     description: "Pick 10 players across 4 seed tiers. Men's & Women's brackets. Most combined pts+reb+ast wins.",

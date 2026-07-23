@@ -104,7 +104,14 @@ function DashboardContent() {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{config.icon}</span>
                 <div>
-                  <h2 className="font-display text-xl tracking-wide">{config.name}</h2>
+                  <h2 className="font-display text-xl tracking-wide">
+                    {config.name}
+                    {config.aliasLabels?.[game.gameSlug] && (
+                      <span className="text-[var(--color-muted-foreground)]">
+                        {' '}· {config.aliasLabels[game.gameSlug]}
+                      </span>
+                    )}
+                  </h2>
                   <p className="text-xs text-[var(--color-muted-foreground)]">{config.season}</p>
                 </div>
                 <Badge variant={badgeVariant}>
