@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { Toggle } from '@/components/ui/Toggle'
 import { Button } from '@/components/ui/Button'
 import { GamePrefRow } from './GamePrefRow'
-import { GAMES } from '@/lib/games-config'
+import { findGameBySlug } from '@/lib/games-config'
 
 interface GlobalPrefs {
   globalOptIn: boolean
@@ -241,7 +241,7 @@ export function PreferenceCenter() {
           </p>
           <div className="space-y-4">
             {prefs.joinedGames.map((slug) => {
-              const game = GAMES.find((g) => g.slug === slug)
+              const game = findGameBySlug(slug)
               if (!game) return null
               const gamePrefs = prefs.gamePrefs[slug] || {
                 prefMorningUpdates: true,

@@ -1,5 +1,8 @@
 export interface GameConfig {
   slug: string
+  // Game-app slugs that map to this card (apps may use finer-grained
+  // slugs, e.g. ncaa-mens-2026/ncaa-womens-2026 under one NCAA card).
+  aliases?: string[]
   name: string
   shortName: string
   description: string
@@ -16,6 +19,7 @@ export interface GameConfig {
 export const GAMES: GameConfig[] = [
   {
     slug: 'ncaa-2026',
+    aliases: ['ncaa-mens-2026', 'ncaa-womens-2026', 'ncaa-2025'],
     name: 'March Madness',
     shortName: 'NCAA',
     description: "Pick 10 players across 4 seed tiers. Men's & Women's brackets. Most combined pts+reb+ast wins.",
@@ -67,3 +71,8 @@ export const GAMES: GameConfig[] = [
     endDate: '2027-01-31',
   },
 ]
+
+// Resolve a game-app slug (possibly an alias) to its hub card.
+export function findGameBySlug(slug: string): GameConfig | undefined {
+  return GAMES.find((g) => g.slug === slug || g.aliases?.includes(slug))
+}

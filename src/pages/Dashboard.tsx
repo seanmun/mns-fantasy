@@ -5,7 +5,7 @@ import { ArrowRight, Users, Trophy, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useApi } from '@/hooks/useApi'
-import { GAMES } from '@/lib/games-config'
+import { findGameBySlug } from '@/lib/games-config'
 
 interface LeagueInfo {
   id: string
@@ -92,7 +92,7 @@ function DashboardContent() {
   return (
     <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-8">
       {data.games.map((game) => {
-        const config = GAMES.find((g) => g.slug === game.gameSlug)
+        const config = findGameBySlug(game.gameSlug)
         if (!config) return null
 
         const badgeVariant = config.status === 'active' ? 'live' : config.status === 'upcoming' ? 'upcoming' : 'completed'
