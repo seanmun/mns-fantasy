@@ -28,10 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = drizzle(sql)
 
     const updates: Record<string, any> = { updatedAt: new Date() }
-    if (prefs.prefMorningUpdate !== undefined) updates.prefMorningUpdate = prefs.prefMorningUpdate
+    if (prefs.prefMorningUpdates !== undefined) updates.prefMorningUpdates = prefs.prefMorningUpdates
     if (prefs.prefEliminationAlerts !== undefined) updates.prefEliminationAlerts = prefs.prefEliminationAlerts
     if (prefs.prefScoreAlerts !== undefined) updates.prefScoreAlerts = prefs.prefScoreAlerts
-    if (prefs.prefRosterLockReminders !== undefined) updates.prefRosterLockReminders = prefs.prefRosterLockReminders
+    if (prefs.prefRosterReminders !== undefined) updates.prefRosterReminders = prefs.prefRosterReminders
 
     // Check if game pref exists
     const [existing] = await db

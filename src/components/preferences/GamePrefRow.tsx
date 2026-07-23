@@ -2,10 +2,10 @@ import { Toggle } from '@/components/ui/Toggle'
 import type { GameConfig } from '@/lib/games-config'
 
 interface GamePrefs {
-  prefMorningUpdate: boolean
+  prefMorningUpdates: boolean
   prefEliminationAlerts: boolean
   prefScoreAlerts: boolean
-  prefRosterLockReminders: boolean
+  prefRosterReminders: boolean
 }
 
 interface GamePrefRowProps {
@@ -26,8 +26,8 @@ export function GamePrefRow({ game, prefs, disabled, onToggle, onUnsubscribeGame
       <div className="space-y-3">
         <Toggle
           label="Morning update emails"
-          checked={prefs.prefMorningUpdate}
-          onChange={(v) => onToggle('prefMorningUpdate', v)}
+          checked={prefs.prefMorningUpdates}
+          onChange={(v) => onToggle('prefMorningUpdates', v)}
           disabled={disabled}
         />
         <Toggle
@@ -44,8 +44,8 @@ export function GamePrefRow({ game, prefs, disabled, onToggle, onUnsubscribeGame
         />
         <Toggle
           label="Roster lock reminders"
-          checked={prefs.prefRosterLockReminders}
-          onChange={(v) => onToggle('prefRosterLockReminders', v)}
+          checked={prefs.prefRosterReminders}
+          onChange={(v) => onToggle('prefRosterReminders', v)}
           disabled={disabled}
         />
       </div>

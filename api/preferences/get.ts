@@ -47,10 +47,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const gamePrefsBySlug: Record<string, any> = {}
     for (const pref of gamePrefs) {
       gamePrefsBySlug[pref.gameSlug] = {
-        prefMorningUpdate: pref.prefMorningUpdate,
+        prefMorningUpdates: pref.prefMorningUpdates,
         prefEliminationAlerts: pref.prefEliminationAlerts,
         prefScoreAlerts: pref.prefScoreAlerts,
-        prefRosterLockReminders: pref.prefRosterLockReminders,
+        prefRosterReminders: pref.prefRosterReminders,
       }
     }
 

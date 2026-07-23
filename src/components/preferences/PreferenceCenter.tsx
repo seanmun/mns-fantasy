@@ -17,10 +17,10 @@ interface GlobalPrefs {
 }
 
 interface GamePrefs {
-  prefMorningUpdate: boolean
+  prefMorningUpdates: boolean
   prefEliminationAlerts: boolean
   prefScoreAlerts: boolean
-  prefRosterLockReminders: boolean
+  prefRosterReminders: boolean
 }
 
 interface PrefsData {
@@ -108,10 +108,10 @@ export function PreferenceCenter() {
   const handleGameToggle = (gameSlug: string, field: keyof GamePrefs, value: boolean) => {
     if (!prefs) return
     const currentGamePrefs = prefs.gamePrefs[gameSlug] || {
-      prefMorningUpdate: true,
+      prefMorningUpdates: true,
       prefEliminationAlerts: true,
       prefScoreAlerts: true,
-      prefRosterLockReminders: true,
+      prefRosterReminders: true,
     }
     const updated = {
       ...prefs,
@@ -127,10 +127,10 @@ export function PreferenceCenter() {
   const handleUnsubscribeGame = async (gameSlug: string) => {
     if (!prefs) return
     const allOff: GamePrefs = {
-      prefMorningUpdate: false,
+      prefMorningUpdates: false,
       prefEliminationAlerts: false,
       prefScoreAlerts: false,
-      prefRosterLockReminders: false,
+      prefRosterReminders: false,
     }
     setPrefs({
       ...prefs,
@@ -244,10 +244,10 @@ export function PreferenceCenter() {
               const game = GAMES.find((g) => g.slug === slug)
               if (!game) return null
               const gamePrefs = prefs.gamePrefs[slug] || {
-                prefMorningUpdate: true,
+                prefMorningUpdates: true,
                 prefEliminationAlerts: true,
                 prefScoreAlerts: true,
-                prefRosterLockReminders: true,
+                prefRosterReminders: true,
               }
               return (
                 <GamePrefRow
