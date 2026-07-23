@@ -87,7 +87,11 @@ export function GameCard({ game, onNotify }: GameCardProps) {
               </Button>
             )}
             {game.status === 'completed' && (
-              <span className="text-xs text-[var(--color-muted-foreground)]">Season ended</span>
+              <a href={game.url} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="secondary">
+                  View Results <ArrowRight size={14} className="ml-1" />
+                </Button>
+              </a>
             )}
           </div>
         </div>
