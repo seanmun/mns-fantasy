@@ -15,17 +15,17 @@ export interface GameConfig {
 // PLATFORM PATTERN — add new games here when subdomains launch
 export const GAMES: GameConfig[] = [
   {
-    slug: 'ncaa-2025',
+    slug: 'ncaa-2026',
     name: 'March Madness',
     shortName: 'NCAA',
     description: "Pick 10 players across 4 seed tiers. Men's & Women's brackets. Most combined pts+reb+ast wins.",
     url: 'https://ncaa.mnsfantasy.com',
     status: 'completed',
-    season: '2025',
+    season: '2026',
     icon: '\u{1F3C0}',
     accentColor: '#00ff87',
-    startDate: '2025-03-19',
-    endDate: '2025-04-06',
+    startDate: '2026-03-17',
+    endDate: '2026-04-06',
   },
   {
     slug: 'golf-masters-2026',
@@ -33,7 +33,7 @@ export const GAMES: GameConfig[] = [
     shortName: 'Golf',
     description: 'Pick 6 golfers. Earn points for birdies, eagles, and more. Compete in private pools.',
     url: 'https://golf.mnsfantasy.com',
-    status: 'active',
+    status: 'completed',
     season: '2026',
     icon: '\u{26F3}',
     accentColor: '#00ff87',
