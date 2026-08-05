@@ -109,6 +109,11 @@ export const draftParticipants = draftSchema.table(
     teamName: text('team_name').notNull(),
     // 1-based position in round one; snake order derives from this.
     slot: integer('slot').notNull(),
+    // Ordered item ids this owner wants, best first. Private to them.
+    // Used for auto-picks whether or not autodraft is on.
+    queue: jsonb('queue').$type<string[]>().notNull().default([]),
+    // When on, their picks are made the moment their turn arrives.
+    autodraft: boolean('autodraft').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (t) => [

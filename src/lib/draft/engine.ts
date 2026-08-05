@@ -190,6 +190,74 @@ async function advance(db: Db, draft: Draft, now: Date): Promise<Draft> {
   return updated
 }
 
+// The pick an auto-advance should make for a participant: the first
+// still-available golfer in their queue, else best available. Used for
+// both clock expiry and autodraft — a queue is a stated preference and
+// applies either way.
+export async function autoPickFor(db: Db, draft: Draft, participantId: string) {
+  const [participant] = await db
+    .select()
+    .from(draftParticipants)
+    .where(eq(draftParticipants.id, participantId))
+    .limit(1)
+
+  const queue = (participant?.queue ?? []) as string[]
+  if (queue.length > 0) {
+    const takenIds = await takenItemIds(db, draft)
+    for (const itemId of queue) {
+      const [item] = await db
+        .select()
+        .from(draftItems)
+        .where(and(eq(draftItems.id, itemId), eq(draftItems.draftId, draft.id)))
+        .limit(1)
+      // Skip anyone already drafted or withdrawn.
+      if (!item || !item.available) continue
+      if (draft.mode === 'draft' && takenIds.has(item.id)) continue
+      return item
+    }
+  }
+  return bestAvailable(db, draft)
+}
+
+async function takenItemIds(db: Db, draft: Draft): Promise<Set<string>> {
+  const taken = await db
+    .select({ itemId: draftPicks.itemId })
+    .from(draftPicks)
+    .where(eq(draftPicks.draftId, draft.id))
+  return new Set(taken.map((t) => t.itemId).filter(Boolean) as string[])
+}
+
+// After any pick, keep going while the next owner has autodraft on.
+// Capped so a fully-automated draft can't exceed the function timeout —
+// the clock picks up whatever is left on its next run.
+export async function runAutodraft(db: Db, draft: Draft, maxPicks = 25): Promise<Draft> {
+  let current = draft
+  for (let i = 0; i < maxPicks; i++) {
+    if (current.status !== 'active' || !current.currentOverall) break
+    const [pick] = await db
+      .select()
+      .from(draftPicks)
+      .where(
+        and(eq(draftPicks.draftId, current.id), eq(draftPicks.overall, current.currentOverall))
+      )
+      .limit(1)
+    if (!pick) break
+    const [owner] = await db
+      .select()
+      .from(draftParticipants)
+      .where(eq(draftParticipants.id, pick.participantId))
+      .limit(1)
+    if (!owner?.autodraft) break
+
+    const item = await autoPickFor(db, current, pick.participantId)
+    if (!item) break
+    const result = await makePick(db, current, { itemId: item.id, isAuto: true })
+    if (!result.ok || !result.draft) break
+    current = result.draft
+  }
+  return current
+}
+
 // Best available by the game's rankHint; nulls last, then name.
 export async function bestAvailable(db: Db, draft: Draft) {
   const taken = await db

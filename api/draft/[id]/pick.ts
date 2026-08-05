@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
 import { drafts } from '../../../src/lib/db/schema.js'
-import { makePick } from '../../../src/lib/draft/engine.js'
+import { makePick, runAutodraft } from '../../../src/lib/draft/engine.js'
 
 // POST /api/draft/:id/pick { itemId }
 // The signed-in owner picks for their own slot; a trusted service may
@@ -29,7 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
     if (!result.ok) return res.status(409).json({ error: result.error })
 
-    return res.status(200).json({ draft: result.draft })
+    // Roll straight through anyone with autodraft switched on.
+    const after = result.draft ? await runAutodraft(db, result.draft) : result.draft
+    return res.status(200).json({ draft: after })
   } catch (error) {
     console.error('POST /api/draft/[id]/pick error:', error)
     return res.status(500).json({ error: 'Internal server error' })

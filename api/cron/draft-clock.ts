@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { eq, lte, and } from 'drizzle-orm'
 import { db, applyCors, requireUser } from '../_draft.js'
-import { drafts } from '../../src/lib/db/schema.js'
-import { makePick, bestAvailable } from '../../src/lib/draft/engine.js'
+import { drafts, draftPicks } from '../../src/lib/db/schema.js'
+import { makePick, autoPickFor, runAutodraft } from '../../src/lib/draft/engine.js'
 
 // Expires overdue picks and auto-picks the best available item.
 //
@@ -45,12 +45,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // One expiry per run per draft — the next tick handles the next
         // slot, so a stalled draft can't burn through a whole round in
         // one invocation.
-        const item = await bestAvailable(db, draft)
+        // Whoever is on the clock: their queue first, then best available.
+        const [pick] = await db
+          .select()
+          .from(draftPicks)
+          .where(and(eq(draftPicks.draftId, draft.id), eq(draftPicks.overall, draft.currentOverall!)))
+          .limit(1)
+        const item = pick
+          ? await autoPickFor(db, draft, pick.participantId)
+          : null
         if (!item) {
           report.push({ draft: draft.name, skipped: 'no items available' })
           continue
         }
         const result = await makePick(db, draft, { itemId: item.id, isAuto: true })
+        if (result.ok && result.draft) await runAutodraft(db, result.draft)
         report.push({
           draft: draft.name,
           autoPicked: item.name,

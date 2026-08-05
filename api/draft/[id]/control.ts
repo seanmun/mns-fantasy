@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { and, eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
 import { drafts, draftItems, draftParticipants } from '../../../src/lib/db/schema.js'
-import { startDraft } from '../../../src/lib/draft/engine.js'
+import { startDraft, runAutodraft } from '../../../src/lib/draft/engine.js'
 
 // POST /api/draft/:id/control { action, ... }
 //   start | pause | resume | cancel
@@ -37,7 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(409).json({ error: `Draft is already ${draft.status}` })
         }
         const started = await startDraft(db, draft)
-        return res.status(200).json({ draft: started })
+        const after = await runAutodraft(db, started)
+        return res.status(200).json({ draft: after })
       }
 
       case 'pause': {

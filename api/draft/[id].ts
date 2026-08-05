@@ -49,7 +49,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       draft,
-      participants,
+      // Queues are private — only the viewer's own is returned.
+      myQueue: viewer?.queue ?? [],
+      myAutodraft: viewer?.autodraft ?? false,
+      participants: participants.map(({ queue: _q, ...rest }) => rest),
       board,
       current,
       // Whose turn it is, and whether that's the caller.
