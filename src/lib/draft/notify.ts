@@ -78,6 +78,7 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
 
     // Their next queued golfer, if it's still available.
     let nextInQueue: string | null = null
+    const queueNames: string[] = []
     const queue = (owner.queue ?? []) as string[]
     if (queue.length > 0) {
       const taken = await db
@@ -93,8 +94,8 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
           .where(eq(draftItems.id, itemId))
           .limit(1)
         if (item?.available) {
-          nextInQueue = item.name
-          break
+          queueNames.push(item.name)
+          if (!nextInQueue) nextInQueue = item.name
         }
       }
     }
@@ -106,6 +107,16 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
       .orderBy(desc(draftPicks.overall))
       .limit(1)
 
+    // What the recipient has drafted so far.
+    const myTeam = await db
+      .select({ round: draftPicks.round, golferName: draftItems.name })
+      .from(draftPicks)
+      .innerJoin(draftItems, eq(draftPicks.itemId, draftItems.id))
+      .where(
+        and(eq(draftPicks.draftId, draft.id), eq(draftPicks.participantId, owner.id))
+      )
+      .orderBy(asc(draftPicks.overall))
+
     const { subject, html } = buildOnTheClockEmail({
       teamName: owner.teamName,
       draftName: draft.name,
@@ -115,8 +126,11 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
       totalPicks: total ?? pick.overall,
       lobbyUrl: draft.lobbyUrl,
       deadlineText: describeDeadline(draft.currentDeadline),
+      totalRounds: draft.rounds,
       nextInQueue,
       recentPicks: previous.reverse(),
+      myTeam,
+      myQueue: queueNames,
     })
 
     const resend = new Resend(apiKey)
