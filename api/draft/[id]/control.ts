@@ -97,6 +97,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true, participants: participants.length })
       }
 
+      // Pool settings (roster size, pick clock) can change right up
+      // until the draft starts; the game re-sends them at start time.
+      case 'set_config': {
+        if (draft.status !== 'setup') {
+          return res.status(409).json({ error: 'Config can only change before the draft starts' })
+        }
+        const patch: Record<string, unknown> = { updatedAt: now }
+        if (req.body?.rounds != null) patch.rounds = Number(req.body.rounds)
+        if ('pickSeconds' in (req.body ?? {})) {
+          patch.pickSeconds = req.body.pickSeconds == null ? null : Number(req.body.pickSeconds)
+        }
+        if (req.body?.slowPickHours != null) patch.slowPickHours = Number(req.body.slowPickHours)
+        if (req.body?.name) patch.name = String(req.body.name)
+        const [updated] = await db
+          .update(drafts)
+          .set(patch)
+          .where(eq(drafts.id, id))
+          .returning()
+        return res.status(200).json({ draft: updated })
+      }
+
       // Field changes (Monday qualifiers, late adds) before the draft starts.
       case 'set_items': {
         if (draft.status !== 'setup') {
