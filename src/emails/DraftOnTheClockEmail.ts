@@ -99,8 +99,8 @@ export function buildOnTheClockEmail({
           .join('')
       : empty('Your queue is empty. Add names so a missed pick still goes your way.')
 
-  const teamLabel = `My Team (${myTeam.length} of ${totalRounds})`
-  const queueLabel = `My Queue (${myQueue.length})`
+  const teamLabel = `Team ${myTeam.length}/${totalRounds}`
+  const queueLabel = `Queue ${myQueue.length}`
 
   const closing = nextInQueue
     ? `Don't get to it and <strong style="color: ${INK}; font-weight: 700;">${esc(nextInQueue)}</strong> comes off your queue automatically.`
@@ -311,7 +311,7 @@ export function buildOnTheClockEmail({
                 <input type="radio" name="tabs" id="tab3" style="display:none;">
                 <div>
                   <div style="display: flex; background-color: ${INK};">
-                    ${tabLabel('tab1', 'Just Picked')}
+                    ${tabLabel('tab1', 'Picked')}
                     ${tabLabel('tab2', teamLabel)}
                     ${tabLabel('tab3', queueLabel)}
                   </div>
@@ -326,7 +326,7 @@ export function buildOnTheClockEmail({
             <!-- TABS (stacked fallback) -->
             <tr class="fallback">
               <td style="padding: 0; background-color: #ffffff; border-top: 1px solid #e8e8e8;" bgcolor="#ffffff">
-                <table width="100%" role="presentation" cellpadding="0" cellspacing="0" border="0">${fallbackSection('Just Picked', pickedBody)}${fallbackSection(teamLabel, teamBody)}${fallbackSection(queueLabel, queueBody, true)}
+                <table width="100%" role="presentation" cellpadding="0" cellspacing="0" border="0">${fallbackSection('Picked', pickedBody)}${fallbackSection(`Team (${myTeam.length} of ${totalRounds})`, teamBody)}${fallbackSection(`Queue (${myQueue.length})`, queueBody, true)}
                 </table>
               </td>
             </tr>
