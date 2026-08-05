@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/**/*.ts": {
-      "includeFiles": "src/lib/db/schema.ts,src/lib/games-config.ts,src/lib/draft/*.ts,src/emails/GameLaunchEmail.ts,api/**/*.ts",
+      "includeFiles": "src/lib/db/schema.ts,src/lib/games-config.ts,src/lib/draft/*.ts,src/emails/*.ts,api/**/*.ts",
       "maxDuration": 30
     }
   },

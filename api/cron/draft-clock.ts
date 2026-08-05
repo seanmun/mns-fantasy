@@ -3,6 +3,7 @@ import { eq, lte, and } from 'drizzle-orm'
 import { db, applyCors, requireUser } from '../_draft.js'
 import { drafts, draftPicks } from '../../src/lib/db/schema.js'
 import { makePick, autoPickFor, runAutodraft } from '../../src/lib/draft/engine.js'
+import { notifyOnTheClock } from '../../src/lib/draft/notify.js'
 
 // Expires overdue picks and auto-picks the best available item.
 //
@@ -59,7 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue
         }
         const result = await makePick(db, draft, { itemId: item.id, isAuto: true })
-        if (result.ok && result.draft) await runAutodraft(db, result.draft)
+        if (result.ok && result.draft) {
+          const after = await runAutodraft(db, result.draft)
+          await notifyOnTheClock(db, after)
+        }
         report.push({
           draft: draft.name,
           autoPicked: item.name,

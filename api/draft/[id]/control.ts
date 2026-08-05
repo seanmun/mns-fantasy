@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
 import { drafts, draftItems, draftParticipants, draftPicks } from '../../../src/lib/db/schema.js'
 import { startDraft, runAutodraft } from '../../../src/lib/draft/engine.js'
+import { notifyOnTheClock } from '../../../src/lib/draft/notify.js'
 
 // POST /api/draft/:id/control { action, ... }
 //   start | pause | resume | cancel
@@ -38,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const started = await startDraft(db, draft)
         const after = await runAutodraft(db, started)
+        await notifyOnTheClock(db, after)
         return res.status(200).json({ draft: after })
       }
 
@@ -61,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .set({ status: 'active', currentDeadline: deadline, updatedAt: now })
           .where(eq(drafts.id, id))
           .returning()
+        await notifyOnTheClock(db, resumed)
         return res.status(200).json({ draft: resumed })
       }
 

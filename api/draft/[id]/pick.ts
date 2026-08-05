@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
 import { drafts } from '../../../src/lib/db/schema.js'
 import { makePick, runAutodraft } from '../../../src/lib/draft/engine.js'
+import { notifyOnTheClock } from '../../../src/lib/draft/notify.js'
 
 // POST /api/draft/:id/pick { itemId }
 // The signed-in owner picks for their own slot; a trusted service may
@@ -31,6 +32,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Roll straight through anyone with autodraft switched on.
     const after = result.draft ? await runAutodraft(db, result.draft) : result.draft
+    // Tell whoever is up now — after autodraft has rolled through.
+    if (after) await notifyOnTheClock(db, after)
     return res.status(200).json({ draft: after })
   } catch (error) {
     console.error('POST /api/draft/[id]/pick error:', error)
