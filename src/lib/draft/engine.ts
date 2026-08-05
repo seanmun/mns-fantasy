@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, isNull } from 'drizzle-orm'
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import {
   drafts,
@@ -39,6 +39,22 @@ export async function startDraft(db: Db, draft: Draft): Promise<Draft> {
     .where(eq(draftParticipants.draftId, draft.id))
     .orderBy(asc(draftParticipants.slot))
   if (participants.length < 2) throw new Error('Need at least 2 participants')
+
+  // A unique-player draft needs at least one item per pick, or it stalls
+  // forever with nothing left to auto-pick.
+  if (draft.mode === 'draft') {
+    const [{ available }] = await db
+      .select({ available: count() })
+      .from(draftItems)
+      .where(and(eq(draftItems.draftId, draft.id), eq(draftItems.available, true)))
+    const needed = draft.rounds * participants.length
+    if (available < needed) {
+      throw new Error(
+        `Not enough golfers to draft: ${needed} picks needed but only ${available} available. ` +
+          `Reduce picks per team or wait for the full field.`
+      )
+    }
+  }
 
   const bySlot = new Map(participants.map((p) => [p.slot, p]))
   const total = draft.rounds * participants.length
@@ -129,16 +145,25 @@ export async function makePick(
     if (taken) return { ok: false, error: 'Already drafted' }
   }
 
+  // Claim the slot atomically: the itemId IS NULL predicate means two
+  // concurrent callers (two browsers expiring the same clock, or a pick
+  // racing the cron) can't both fill it — the loser gets zero rows.
   const now = new Date()
-  await db
+  const claimed = await db
     .update(draftPicks)
     .set({ itemId: item.id, madeAt: now, isAuto: !!opts.isAuto })
-    .where(eq(draftPicks.id, pick.id))
+    .where(and(eq(draftPicks.id, pick.id), isNull(draftPicks.itemId)))
+    .returning({ id: draftPicks.id })
+  if (claimed.length === 0) {
+    return { ok: false, error: 'Pick already made' }
+  }
 
   return { ok: true, draft: await advance(db, draft, now) }
 }
 
 // Move the pointer to the next unmade slot, or complete the draft.
+// Derived from the picks table rather than incremented, so running it
+// twice is harmless.
 async function advance(db: Db, draft: Draft, now: Date): Promise<Draft> {
   const [next] = await db
     .select()
