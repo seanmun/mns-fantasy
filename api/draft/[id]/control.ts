@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { and, eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
-import { drafts, draftItems, draftParticipants } from '../../../src/lib/db/schema.js'
+import { drafts, draftItems, draftParticipants, draftPicks } from '../../../src/lib/db/schema.js'
 import { startDraft, runAutodraft } from '../../../src/lib/draft/engine.js'
 
 // POST /api/draft/:id/control { action, ... }
@@ -71,6 +71,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .where(eq(drafts.id, id))
           .returning()
         return res.status(200).json({ draft: cancelled })
+      }
+
+      // Wipe the board back to setup so changed settings can be picked
+      // up and the draft run again from scratch.
+      case 'reset': {
+        await db.delete(draftPicks).where(eq(draftPicks.draftId, id))
+        const [reset] = await db
+          .update(drafts)
+          .set({
+            status: 'setup',
+            currentOverall: null,
+            currentDeadline: null,
+            startedAt: null,
+            completedAt: null,
+            updatedAt: now,
+          })
+          .where(eq(drafts.id, id))
+          .returning()
+        return res.status(200).json({ draft: reset })
       }
 
       // Late joiners: the roster of participants stays open until the
