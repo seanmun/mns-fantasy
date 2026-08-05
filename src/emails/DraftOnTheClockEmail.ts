@@ -150,6 +150,8 @@ export function buildOnTheClockEmail({
   <![endif]-->
 
   <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
     html, body { margin: 0 auto; padding: 0; height: 100%; width: 100%; -webkit-text-size-adjust: none; -ms-text-size-adjust: none; }
     body { margin: 0; padding: 0; background-color: #f5f5f7; }
     table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
@@ -179,11 +181,16 @@ export function buildOnTheClockEmail({
   <!-- Tabs -->
   <style type="text/css">
     .content-div { display: none !important; max-height: 0 !important; overflow: hidden !important; }
-    #tab1:checked ~ * .content1,
-    #tab2:checked ~ * .content2,
+
+    /* One rule per tab, never comma-grouped: a client that chokes on a
+       single selector would otherwise drop the whole group and break
+       every tab at once. */
+    #tab1:checked ~ * .content1 { display: block !important; max-height: none !important; overflow: visible !important; }
+    #tab2:checked ~ * .content2 { display: block !important; max-height: none !important; overflow: visible !important; }
     #tab3:checked ~ * .content3 { display: block !important; max-height: none !important; overflow: visible !important; }
-    #tab1:checked ~ * label[for="tab1"],
-    #tab2:checked ~ * label[for="tab2"],
+
+    #tab1:checked ~ * label[for="tab1"] { background-color: ${GREEN} !important; color: ${INK} !important; border-bottom: 2px solid ${GREEN} !important; }
+    #tab2:checked ~ * label[for="tab2"] { background-color: ${GREEN} !important; color: ${INK} !important; border-bottom: 2px solid ${GREEN} !important; }
     #tab3:checked ~ * label[for="tab3"] { background-color: ${GREEN} !important; color: ${INK} !important; border-bottom: 2px solid ${GREEN} !important; }
   </style>
 </head>
