@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { and, eq } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
-import { drafts, draftItems } from '../../../src/lib/db/schema.js'
+import { drafts, draftItems, draftParticipants } from '../../../src/lib/db/schema.js'
 import { startDraft } from '../../../src/lib/draft/engine.js'
 
 // POST /api/draft/:id/control { action, ... }
@@ -70,6 +70,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .where(eq(drafts.id, id))
           .returning()
         return res.status(200).json({ draft: cancelled })
+      }
+
+      // Late joiners: the roster of participants stays open until the
+      // draft starts, so the game re-sends it at start time.
+      case 'set_participants': {
+        if (draft.status !== 'setup') {
+          return res
+            .status(409)
+            .json({ error: 'Participants can only change before the draft starts' })
+        }
+        const participants = req.body?.participants
+        if (!Array.isArray(participants) || participants.length < 2) {
+          return res.status(400).json({ error: 'At least 2 participants are required' })
+        }
+        await db.delete(draftParticipants).where(eq(draftParticipants.draftId, id))
+        await db.insert(draftParticipants).values(
+          participants.map((p: Record<string, unknown>, i: number) => ({
+            draftId: id,
+            userId: String(p.userId),
+            email: p.email ? String(p.email) : null,
+            teamName: String(p.teamName ?? `Team ${i + 1}`),
+            slot: Number(p.slot ?? i + 1),
+          }))
+        )
+        return res.status(200).json({ ok: true, participants: participants.length })
       }
 
       // Field changes (Monday qualifiers, late adds) before the draft starts.
