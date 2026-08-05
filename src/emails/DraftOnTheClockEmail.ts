@@ -361,8 +361,13 @@ export function buildOnTheClockEmail({
                     </td>
                   </tr>
                   <tr>
-                    <td style="text-align: center;">
+                    <td style="text-align: center; padding-bottom: 14px;">
                       <a href="https://mnsfantasy.com/preferences" style="font-family: ${MONO}; font-size: 11px; color: ${GREEN}; text-decoration: underline; letter-spacing: 1px;">Manage preferences</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center; border-top: 1px solid #2e2e3a; padding-top: 14px;">
+                      <p style="font-family: ${MONO}; font-size: 10px; color: #8e8e9a; margin: 0; letter-spacing: 1px;">Powered by <a href="https://kinetic.email/" style="color: #8e8e9a; text-decoration: underline;">KINETIC.email</a></p>
                     </td>
                   </tr>
                 </table>
