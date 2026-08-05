@@ -121,7 +121,9 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
 
     const resend = new Resend(apiKey)
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'updates@e.mnsfantasy.com',
+      // Sender name shows in the inbox; RESEND_FROM_EMAIL is the address
+      // only, so it's wrapped here rather than duplicated in the env var.
+      from: `MNS Golf <${process.env.RESEND_FROM_EMAIL || 'updates@e.mnsfantasy.com'}>`,
       to: owner.email,
       subject,
       html,
