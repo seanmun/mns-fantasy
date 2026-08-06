@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, notInArray, sql } from 'drizzle-orm'
 import { db, applyCors, requireUser, isTrustedService } from '../../_draft.js'
 import { drafts, draftItems, draftParticipants, draftPicks } from '../../../src/lib/db/schema.js'
 import { startDraft, runAutodraft } from '../../../src/lib/draft/engine.js'
@@ -107,15 +107,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!Array.isArray(participants) || participants.length < 2) {
           return res.status(400).json({ error: 'At least 2 participants are required' })
         }
+        // Queues and autodraft are set during setup, and games re-send
+        // this list on every start — so the rewrite has to carry each
+        // user's own state forward or it's silently thrown away right
+        // when it matters.
+        const prior = await db
+          .select()
+          .from(draftParticipants)
+          .where(eq(draftParticipants.draftId, id))
+        const priorByUser = new Map(prior.map((p) => [p.userId, p]))
+
         await db.delete(draftParticipants).where(eq(draftParticipants.draftId, id))
         await db.insert(draftParticipants).values(
-          participants.map((p: Record<string, unknown>, i: number) => ({
-            draftId: id,
-            userId: String(p.userId),
-            email: p.email ? String(p.email) : null,
-            teamName: String(p.teamName ?? `Team ${i + 1}`),
-            slot: Number(p.slot ?? i + 1),
-          }))
+          participants.map((p: Record<string, unknown>, i: number) => {
+            const kept = priorByUser.get(String(p.userId))
+            return {
+              draftId: id,
+              userId: String(p.userId),
+              email: p.email ? String(p.email) : null,
+              teamName: String(p.teamName ?? `Team ${i + 1}`),
+              slot: Number(p.slot ?? i + 1),
+              queue: kept?.queue ?? [],
+              autodraft: kept?.autodraft ?? false,
+            }
+          })
         )
         return res.status(200).json({ ok: true, participants: participants.length })
       }
@@ -150,16 +165,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!Array.isArray(items) || items.length === 0) {
           return res.status(400).json({ error: 'items are required' })
         }
-        await db.delete(draftItems).where(eq(draftItems.draftId, id))
-        await db.insert(draftItems).values(
-          items.map((it: Record<string, unknown>) => ({
-            draftId: id,
-            ref: String(it.ref),
-            name: String(it.name),
-            meta: (it.meta ?? null) as never,
-            rankHint: it.rankHint == null ? null : Number(it.rankHint),
-          }))
-        )
+        // Upsert on (draftId, ref) rather than wiping the table: a
+        // participant's queue stores item IDs, so recreating rows would
+        // hand every queued entry a dead id. Games re-send the full
+        // field on every start, so this runs constantly.
+        const rows = items.map((it: Record<string, unknown>) => ({
+          draftId: id,
+          ref: String(it.ref),
+          name: String(it.name),
+          meta: (it.meta ?? null) as never,
+          rankHint: it.rankHint == null ? null : Number(it.rankHint),
+          available: true,
+        }))
+        await db
+          .insert(draftItems)
+          .values(rows)
+          .onConflictDoUpdate({
+            target: [draftItems.draftId, draftItems.ref],
+            set: {
+              name: sql`excluded.name`,
+              meta: sql`excluded.meta`,
+              rankHint: sql`excluded.rank_hint`,
+              available: sql`excluded.available`,
+            },
+          })
+        // Anyone no longer in the field is out. Setup-only, so no pick
+        // can reference them yet.
+        const keep = rows.map((r) => r.ref)
+        await db
+          .delete(draftItems)
+          .where(and(eq(draftItems.draftId, id), notInArray(draftItems.ref, keep)))
         return res.status(200).json({ ok: true, items: items.length })
       }
 
