@@ -54,9 +54,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .set(updates)
         .where(eq(marketingSubscribers.userId, userId))
     } else {
+      // source is NOT NULL with no default — omitting it made every
+      // first-time preference save fail at the DB. Existing subscribers
+      // take the UPDATE branch above, which is why it went unnoticed.
       await db.insert(marketingSubscribers).values({
         userId,
         email,
+        source: 'preference-center',
         ...updates,
       })
     }
