@@ -15,6 +15,11 @@ export interface GameConfig {
   accentColor: string
   startDate: string
   endDate: string
+  // Kept in the list but not shown on the grid. Deliberately not a
+  // deletion: findGameBySlug still resolves it, so existing notify
+  // sign-ups and stored game_slug values keep working while the card is
+  // off the site. Flip to show it again.
+  hidden?: boolean
 }
 
 // PLATFORM PATTERN — add new games here when subdomains launch
@@ -62,6 +67,19 @@ export const GAMES: GameConfig[] = [
     endDate: '2026-12-06',
   },
   {
+    slug: 'nfl-2026',
+    name: 'NFL Pick’em',
+    shortName: 'NFL',
+    description: 'Weekly NFL pools. Pick against the spread or straight up, mark a key pick, and the standings keep themselves.',
+    url: 'https://nfl.mnsfantasy.com',
+    status: 'active',
+    season: '2026',
+    icon: '\u{1F3C8}',
+    accentColor: '#bf5af2',
+    startDate: '2026-09-10',
+    endDate: '2027-01-03',
+  },
+  {
     slug: 'rumble-raffle-2027',
     name: 'Rumble Raffle',
     shortName: 'Rumble Raffle',
@@ -73,6 +91,7 @@ export const GAMES: GameConfig[] = [
     accentColor: '#00e5ff',
     startDate: '2027-01-01',
     endDate: '2027-01-31',
+    hidden: true,
   },
 ]
 

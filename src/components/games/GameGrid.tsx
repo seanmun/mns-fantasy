@@ -6,9 +6,13 @@ interface GameGridProps {
 }
 
 export function GameGrid({ onNotify }: GameGridProps) {
-  const activeGames = GAMES.filter((g) => g.status === 'active')
-  const upcomingGames = GAMES.filter((g) => g.status === 'upcoming')
-  const completedGames = GAMES.filter((g) => g.status === 'completed')
+  // Hidden games stay in GAMES so findGameBySlug and stored game_slug
+  // values keep resolving; they just do not get a card.
+  const shown = GAMES.filter((g) => !g.hidden)
+
+  const activeGames = shown.filter((g) => g.status === 'active')
+  const upcomingGames = shown.filter((g) => g.status === 'upcoming')
+  const completedGames = shown.filter((g) => g.status === 'completed')
 
   const sortedGames = [...activeGames, ...upcomingGames, ...completedGames]
 
