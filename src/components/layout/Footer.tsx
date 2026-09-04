@@ -6,7 +6,7 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-sm text-[var(--color-muted-foreground)] mb-2">
           <span className="font-display text-[var(--color-foreground)]">
-            MNS<span className="text-neon-green">fantasy</span>
+            MNS<span className="text-[var(--color-accent)]">fantasy</span>
           </span>
           {' '}&mdash; Fantasy Sports That Never Sleep
         </p>

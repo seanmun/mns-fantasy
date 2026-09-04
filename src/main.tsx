@@ -13,7 +13,12 @@ import { About } from '@/pages/About'
 import { Privacy } from '@/pages/Privacy'
 import { Changelog } from '@/pages/Changelog'
 import { NotFound } from '@/pages/NotFound'
+import { initTheme } from '@/ui/theme'
 import './index.css'
+
+// Stamp the remembered theme before React mounts — after would flash
+// the wrong palette on every load for anyone who has toggled.
+initTheme()
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 

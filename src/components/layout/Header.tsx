@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useUser, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/Button'
+import { ThemeToggle } from '@/ui/components'
 
 export function Header() {
   const { user } = useUser()
@@ -10,7 +11,7 @@ export function Header() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <span className="font-display text-2xl tracking-wide text-[var(--color-foreground)]">
-            MNS<span className="text-neon-green">fantasy</span>
+            MNS<span className="text-[var(--color-accent)]">fantasy</span>
           </span>
         </Link>
 
@@ -24,6 +25,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <SignedIn>
             <UserButton
               afterSignOutUrl="/"

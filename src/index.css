@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Runtime palette + component styles from mns-ui (synced src/ui/).
+   tokens.css carries BOTH themes — Chalk light on bare :root, dark via
+   prefers-color-scheme and [data-theme] stamps — and, being unlayered,
+   it overrides the @theme block's values at runtime. The @theme block
+   below still names the tokens so Tailwind utilities exist. */
+@import "./ui/tokens.css";
+@import "./ui/mns-ui.css";
 
 @theme {
   --color-background: #0a0a0f;
