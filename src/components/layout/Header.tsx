@@ -20,6 +20,7 @@ export function Header() {
           <a href="#games" className="hover:text-[var(--color-foreground)] transition-colors">Games</a>
           <SignedIn>
             <Link to="/dashboard" className="hover:text-[var(--color-foreground)] transition-colors">Dashboard</Link>
+            <Link to="/chat" className="hover:text-[var(--color-foreground)] transition-colors">Assistant</Link>
             <Link to="/preferences" className="hover:text-[var(--color-foreground)] transition-colors">Preferences</Link>
           </SignedIn>
         </nav>

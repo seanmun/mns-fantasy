@@ -8,6 +8,7 @@ import { Preferences } from '@/pages/Preferences'
 import { SignIn } from '@/pages/SignIn'
 import { SignUp } from '@/pages/SignUp'
 import { Dashboard } from '@/pages/Dashboard'
+import { Chat } from '@/pages/Chat'
 import { Admin } from '@/pages/Admin'
 import { About } from '@/pages/About'
 import { Privacy } from '@/pages/Privacy'
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
           <Route element={<AppShell />}>
             <Route path="/" element={<Landing />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/preferences" element={<Preferences />} />
             <Route path="/sign-in/*" element={<SignIn />} />
             <Route path="/sign-up/*" element={<SignUp />} />
