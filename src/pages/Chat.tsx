@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from '@clerk/clerk-react'
 import { useApi } from '@/hooks/useApi'
 import { AssistantChat } from '@/ui/components'
 
@@ -14,6 +14,22 @@ const SUGGESTIONS = [
 // session and nothing more.
 function ChatContent() {
   const { apiFetch } = useApi()
+  const { getToken } = useAuth()
+
+  // Custom voice: null on any non-200 (unconfigured, quota, hiccup) —
+  // AssistantChat then falls back to the free device voice.
+  const tts = async (text: string): Promise<Blob | null> => {
+    const token = await getToken()
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text }),
+    })
+    return res.ok ? res.blob() : null
+  }
 
   return (
     <div className="max-w-2xl mx-auto w-full px-4 pt-24 pb-6 flex flex-col min-h-screen">
@@ -27,6 +43,7 @@ function ChatContent() {
       </div>
       <AssistantChat
         suggestions={SUGGESTIONS}
+        tts={tts}
         send={async (messages) => {
           const result = (await apiFetch('/api/chat', {
             method: 'POST',
