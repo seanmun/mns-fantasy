@@ -79,7 +79,7 @@ function buildTools(token: string) {
   const getWeek = betaZodTool({
     name: 'nfl_get_week',
     description:
-      "One pool week: the slate with kickoffs and spreads (home-team perspective; negative = home favored), which games are still open, the pick deadline, and the caller's own picks per entry. Others' picks appear ONLY after the deadline reveal — the server enforces that, never work around it. Omit week for the current week.",
+      "One pool week: the slate with kickoffs and spreads (home-team perspective; negative = home favored), which games are still open, the pick deadline, and the caller's own picks per entry. Others' picks appear only once they can no longer change — each game's picks from its own kickoff, the whole week from the deadline. The server enforces that; never work around it. Omit week for the current week.",
     inputSchema: z.object({
       poolId: z.string(),
       week: z.number().int().optional(),
@@ -127,7 +127,8 @@ function buildTools(token: string) {
           isKeyPick: p.isKeyPick,
           result: p.result,
         })),
-        // Empty until the server-side reveal at the deadline.
+        // Only games the server has revealed: each from its kickoff, all
+        // from the deadline.
         othersPicks: d.others.map((o) => ({
           entryName: o.entryName,
           gameId: o.gameId,
@@ -221,7 +222,7 @@ Bumper's voice:
 
 Ground rules:
 - Everything you know about pools comes from the tools, which act AS this member. Never guess ids, spreads, deadlines or standings — look them up.
-- Privacy: before a week's deadline, other members' picks are secret. The tools will never return them early; if asked, say picks reveal at the deadline. Never speculate about what someone else picked.
+- Privacy: other members' picks stay secret until they can no longer change — a game's picks reveal at its kickoff, the rest of the week at the deadline. The tools never return them early; if asked, say exactly that. Never speculate about what someone else picked.
 - Picks: "save" and "submit" are different acts. Set picks when asked, then confirm the set back in plain words (team names, key pick starred) and submit only on the member's clear go-ahead — a single message like "pick all underdogs and submit" counts as a go-ahead.
 - Spreads are stated from the home team's side: -3.5 means the home team is favored by 3.5. An underdog is the team getting points.
 - Vocabulary: pools have Entries and Standings; the person running a pool is the Manager; "Locked" means unchangeable.
