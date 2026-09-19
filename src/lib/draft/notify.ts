@@ -31,11 +31,12 @@ export function draftBrand(lobbyUrl: string): { name: string; noun: string; from
     /* fall through to the generic brand */
   }
   const brand = GAME_BRANDS[slug] ?? { name: 'MNS Fantasy', noun: 'player' }
-  // Keep whatever domain RESEND_FROM_EMAIL verified; brand the local part.
+  // The hub sends these for every game, so the address is the hub's:
+  // draft@ on whatever domain RESEND_FROM_EMAIL verified. Only the
+  // display name is per-game.
   const envAddr = process.env.RESEND_FROM_EMAIL || 'updates@e.mnsfantasy.com'
   const domain = envAddr.includes('@') ? envAddr.split('@')[1] : 'e.mnsfantasy.com'
-  const local = GAME_BRANDS[slug] ? slug : envAddr.split('@')[0]
-  return { ...brand, from: `${brand.name} <${local}@${domain}>` }
+  return { ...brand, from: `${brand.name} <draft@${domain}>` }
 }
 
 // "in 11h 42m (6:14 AM Thu)" — relative first, since that's what the
