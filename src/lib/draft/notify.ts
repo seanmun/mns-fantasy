@@ -12,6 +12,32 @@ import { buildOnTheClockEmail } from '../../emails/DraftOnTheClockEmail.js'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = NeonHttpDatabase<any>
 
+// The engine knows nothing about sports, but every draft carries its
+// game's lobbyUrl — the subdomain is the brand. Sender name, address
+// local part and the word for a draftable thing all follow it, so a
+// WNBA draft never signs itself "MNS Golf".
+const GAME_BRANDS: Record<string, { name: string; noun: string }> = {
+  golf: { name: 'MNS Golf', noun: 'golfer' },
+  wnba: { name: 'MNS WNBA', noun: 'player' },
+  nfl: { name: 'MNS NFL', noun: 'player' },
+  ncaa: { name: 'MNS NCAA', noun: 'player' },
+}
+
+export function draftBrand(lobbyUrl: string): { name: string; noun: string; from: string } {
+  let slug = ''
+  try {
+    slug = new URL(lobbyUrl).hostname.split('.')[0].toLowerCase()
+  } catch {
+    /* fall through to the generic brand */
+  }
+  const brand = GAME_BRANDS[slug] ?? { name: 'MNS Fantasy', noun: 'player' }
+  // Keep whatever domain RESEND_FROM_EMAIL verified; brand the local part.
+  const envAddr = process.env.RESEND_FROM_EMAIL || 'updates@e.mnsfantasy.com'
+  const domain = envAddr.includes('@') ? envAddr.split('@')[1] : 'e.mnsfantasy.com'
+  const local = GAME_BRANDS[slug] ? slug : envAddr.split('@')[0]
+  return { ...brand, from: `${brand.name} <${local}@${domain}>` }
+}
+
 // "in 11h 42m (6:14 AM Thu)" — relative first, since that's what the
 // reader actually acts on.
 function describeDeadline(deadline: Date | null): string {
@@ -117,7 +143,9 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
       )
       .orderBy(asc(draftPicks.overall))
 
+    const brand = draftBrand(draft.lobbyUrl)
     const { subject, html } = buildOnTheClockEmail({
+      itemNoun: brand.noun,
       teamName: owner.teamName,
       draftName: draft.name,
       round: pick.round,
@@ -135,9 +163,7 @@ export async function notifyOnTheClock(db: Db, draft: Draft): Promise<boolean> {
 
     const resend = new Resend(apiKey)
     await resend.emails.send({
-      // Sender name shows in the inbox; RESEND_FROM_EMAIL is the address
-      // only, so it's wrapped here rather than duplicated in the env var.
-      from: `MNS Golf <${process.env.RESEND_FROM_EMAIL || 'updates@e.mnsfantasy.com'}>`,
+      from: brand.from,
       to: owner.email,
       subject,
       html,

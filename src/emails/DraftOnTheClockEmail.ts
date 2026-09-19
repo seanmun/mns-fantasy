@@ -20,6 +20,8 @@ interface OnTheClockEmailProps {
   lobbyUrl: string
   /** When the pick auto-fills, already formatted for the reader. */
   deadlineText: string
+  /** What a draftable thing is called in this game — 'golfer', 'player'. */
+  itemNoun?: string
   /** Their top still-available queued golfer, if they have one. */
   nextInQueue?: string | null
   /** Completed picks before theirs, oldest first. */
@@ -68,7 +70,9 @@ export function buildOnTheClockEmail({
   recentPicks = [],
   myTeam = [],
   myQueue = [],
+  itemNoun,
 }: OnTheClockEmailProps): { subject: string; html: string } {
+  const noun = itemNoun ?? 'player'
   const tokens: Record<string, string> = {
     draftName: esc(draftName),
     teamName: esc(teamName),
@@ -88,7 +92,7 @@ export function buildOnTheClockEmail({
     queueLines: myQueue.map((n, i) => `${i + 1}. ${esc(n)}`).join('<br>'),
     closingLine: nextInQueue
       ? `Don't get to it and ${esc(nextInQueue)} comes off your queue automatically.`
-      : `Don't get to it and the best available golfer is picked for you. Add golfers to your queue to control what happens if you're away.`,
+      : `Don't get to it and the best available ${noun} is picked for you. Add ${noun}s to your queue to control what happens if you're away.`,
     // There's no hosted copy of the email, so this points at the lobby.
     VIB_URL: lobbyUrl,
   }
