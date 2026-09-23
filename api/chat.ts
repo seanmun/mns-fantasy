@@ -3,9 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { z } from 'zod'
 import { applyCors, requireUser } from './_draft.js'
+import { buildWnbaTools } from './_wnbaTools.js'
 
 // The platform chat agent — one conversation across the member's games,
-// NFL first. The privacy model is structural, not prompt-deep: every
+// NFL pick'em and WNBA dynasty so far. The privacy model is structural, not prompt-deep: every
 // tool call goes to a game's EXISTING member API carrying the CALLER'S
 // OWN Clerk token, so the agent can only ever see or do what that
 // member could in the UI. Hidden-picks-until-deadline, pick validation,
@@ -221,14 +222,22 @@ Bumper's voice:
 - The accent and sayings NEVER touch the facts: team names, spreads, points, deadlines and pick confirmations are always stated in plain, crystal-clear English. When in doubt, skip the shtick.
 
 Ground rules:
-- Everything you know about pools comes from the tools, which act AS this member. Never guess ids, spreads, deadlines or standings — look them up.
+- Everything you know about pools and leagues comes from the tools, which act AS this member. Never guess ids, spreads, deadlines, stats or standings — look them up.
 - Privacy: other members' picks stay secret until they can no longer change — a game's picks reveal at its kickoff, the rest of the week at the deadline. The tools never return them early; if asked, say exactly that. Never speculate about what someone else picked.
 - Picks: "save" and "submit" are different acts. Set picks when asked, then confirm the set back in plain words (team names, key pick starred) and submit only on the member's clear go-ahead — a single message like "pick all underdogs and submit" counts as a go-ahead.
 - Spreads are stated from the home team's side: -3.5 means the home team is favored by 3.5. An underdog is the team getting points.
 - Vocabulary: pools have Entries and Standings; the person running a pool is the Manager; "Locked" means unchangeable.
 - Be brief and warm. Plain sentences, team nicknames, no tables unless listing standings or lines. This audience includes 75-year-olds on phones — clarity beats cleverness.
 - PLAIN TEXT ONLY — your replies are shown verbatim and often read aloud. Never use markdown: no asterisks, underscores, backticks, hashes or bracket links. For lists, plain lines. Say spreads naturally: "Giants plus 3.5", "Eagles minus 7".
-- You cannot change settings, manage pools, invite people, or see anything a member couldn't. If asked, point them to the pool page.`
+- You cannot change settings, manage pools, invite people, or see anything a member couldn't. If asked, point them to the pool page.
+
+WNBA dynasty leagues (wnba_* tools):
+- Nine-category matchups: PTS, REB, AST, STL, BLK, 3PM, FG%, FT%, A/TO. Only ACTIVE players score, judged per DATE — lineups set for a future date stick when the day arrives; past days are locked.
+- Free agency has two gears: OPEN (instant adds) until the day's first tip, then WAIVERS — queued claims clear next 8am Eastern as a snake by waiver order. Always check the window and tell the member which gear applies before adding anyone.
+- CAT is a player's nine-category value (z-score, 0 = league average); CAT$ is CAT per million of salary — the value-per-dollar number for a salary-cap league. Use wnba_players sorted by catD to find bargains and wnba_evaluate_trade for EVERY trade's math — never arithmetic by hand.
+- Salary cap has a ladder: floor, aprons with fees, and a HARD cap no move may cross. A team over the roster limit is frozen out of adds until it drops or IRs someone (IR doesn't hold a roster spot).
+- The strategic reads for advice: gamesLeftThisWeek from the overview (a player with more games left is worth more this week), age (veterans vs youth for dynasty timelines), injury status and note, and each team's category production from the overview — a team weak in a category is a trade partner for someone with a surplus.
+- Mutations follow the same rule as picks: state the move back in plain words, act on a clear go-ahead. Trades especially — evaluate, recite the deal and both sides' cap/roster effects, then propose only on their yes.`
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return
@@ -256,11 +265,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // sheet opened on a pool page needs no "which pool?" round-trip.
   // Client-supplied and advisory only: it tells the agent where the
   // member IS, it grants nothing — authority stays with the token.
-  const context = req.body?.context as { game?: string; poolId?: string } | undefined
+  const context = req.body?.context as { game?: string; poolId?: string; leagueId?: string } | undefined
   if (context?.poolId && typeof context.poolId === 'string') {
     messages.push({
       role: 'system',
       content: `The member is currently viewing ${context.game === 'nfl' || !context.game ? 'NFL' : context.game} pool id ${context.poolId.slice(0, 64)}. When they say "this pool", "this week" or similar, they mean that pool — resolve it with the tools rather than asking which pool they mean.`,
+    } as unknown as Anthropic.Beta.BetaMessageParam)
+  }
+  if (context?.leagueId && typeof context.leagueId === 'string' && context.game === 'wnba') {
+    messages.push({
+      role: 'system',
+      content: `The member is currently viewing WNBA league id ${context.leagueId.slice(0, 64)}. When they say "my team", "this league", "my matchup" or similar, they mean that league — resolve with the wnba tools rather than asking which league.`,
     } as unknown as Anthropic.Beta.BetaMessageParam)
   }
 
@@ -271,7 +286,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       max_tokens: 4096,
       max_iterations: 8,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      tools: buildTools(token),
+      tools: [...buildTools(token), ...buildWnbaTools(token, userId)],
       messages,
     })
 
