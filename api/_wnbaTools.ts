@@ -92,7 +92,7 @@ export function buildWnbaTools(token: string, userId: string) {
   const overview = betaZodTool({
     name: 'wnba_league_overview',
     description:
-      'The league in one read: phase, current week, standings (wins, category points, salary per team, which is mine), cap ladder, roster rules, the free-agency window (open = instant adds until first tip; waivers = claims clear next 8am ET as a snake), prize pot, and how many games each WNBA club still plays this league week — the streaming number. Start here for anything strategic.',
+      'The league in one read: phase, current week, standings (wins, category points, salary per team, which is mine), cap ladder, roster rules including the LINEUP SHAPE (positionSlots — e.g. 2 C, 4 F, 4 G; empty means all-flex), the free-agency window (open = instant adds until first tip; waivers = claims clear next 8am ET as a snake), prize pot, and how many games each WNBA club still plays this league week — the streaming number. Start here for anything strategic.',
     inputSchema: z.object({ leagueId: z.string() }),
     run: async (input) => asResult(await wnbaFetch(token, `/api/leagues/${input.leagueId}/overview`)),
   })
@@ -276,7 +276,7 @@ export function buildWnbaTools(token: string, userId: string) {
   const setLineup = betaZodTool({
     name: 'wnba_set_lineup',
     description:
-      "Move the member's own players between active, bench, ir and redshirt for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. REDSHIRT IS DIFFERENT: a season-long act costing a league fee to place and another to undo, open only to a rookie (yearsPro 0) who has never played AND is actually with a WNBA club (leaguePresence 'rostered'); activating spends the eligibility forever — never redshirt or activate without saying the fee out loud and getting a clear yes. INTERNATIONAL is the stash for a player who is NOT with a WNBA club (leaguePresence 'rights_only' or 'absent') and has not played here — any experience level, no fee, and she returns free whenever she reports. State every move back in plain words after. The server enforces IR limits, eligibility and locks — report its errors honestly.",
+      "Move the member's own players between active, bench, ir and redshirt for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. If the league names a lineup shape, every active player must fit a distinct slot she qualifies for — the server refuses a move that leaves someone unplaceable and says which slots are open. REDSHIRT IS DIFFERENT: a season-long act costing a league fee to place and another to undo, open only to a rookie (yearsPro 0) who has never played AND is actually with a WNBA club (leaguePresence 'rostered'); activating spends the eligibility forever — never redshirt or activate without saying the fee out loud and getting a clear yes. INTERNATIONAL is the stash for a player who is NOT with a WNBA club (leaguePresence 'rights_only' or 'absent') and has not played here — any experience level, no fee, and she returns free whenever she reports. State every move back in plain words after. The server enforces IR limits, eligibility and locks — report its errors honestly.",
     inputSchema: z.object({
       leagueId: z.string(),
       moves: z.array(
