@@ -60,12 +60,14 @@ interface StatAvg {
   catD?: number | null
 }
 
-async function myTeamId(token: string, leagueId: string, userId: string): Promise<string | null> {
+async function myTeam(token: string, leagueId: string, userId: string) {
   const r = await wnbaFetch(token, `/api/leagues/${leagueId}/teams`)
   if (!r.ok) return null
-  const teams = r.body as Array<{ id: string; owners: Array<{ userId: string | null }> }>
-  return teams.find((t) => t.owners.some((o) => o.userId === userId))?.id ?? null
+  const teams = r.body as Array<{ id: string; aiPrefs?: Record<string, unknown>; owners: Array<{ userId: string | null }> }>
+  return teams.find((t) => t.owners.some((o) => o.userId === userId)) ?? null
 }
+const myTeamId = async (token: string, leagueId: string, userId: string) =>
+  (await myTeam(token, leagueId, userId))?.id ?? null
 
 export function buildWnbaTools(token: string, userId: string) {
   const myLeagues = betaZodTool({
@@ -94,13 +96,14 @@ export function buildWnbaTools(token: string, userId: string) {
   const myTeam = betaZodTool({
     name: 'wnba_my_team',
     description:
-      "The member's roster for a date (default today, Eastern): each player's lineup slot (only ACTIVE players score, per date), position, salary, age, injury status and note, plus cap usage and the member's pending waiver queue. Past dates are locked; today and future dates are editable.",
+      "The member's roster for a date (default today, Eastern): each player's lineup slot (only ACTIVE players score, per date), position, salary, age, injury status and note, plus cap usage, the member's pending waiver queue, and their STRATEGY — dials (0-100) and a philosophy note that every piece of advice must fit. Past dates are locked; today and future dates are editable.",
     inputSchema: z.object({
       leagueId: z.string(),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const teamId = await myTeamId(token, input.leagueId, userId)
+      const team = await myTeam(token, input.leagueId, userId)
+      const teamId = team?.id ?? null
       if (!teamId) return 'This member does not own a team in that league.'
       const dateQ = input.date ? `&date=${input.date}` : ''
       const [playersR, lineupR, waiversR] = await Promise.all([
@@ -138,6 +141,19 @@ export function buildWnbaTools(token: string, userId: string) {
         roster,
         faWindow: waivers?.window ?? null,
         pendingClaims: waivers?.myClaims ?? [],
+        // Dials run 0-100 between the named poles; the notes outrank
+        // them. Private to this member — other teams have their own.
+        strategy: {
+          dials: {
+            timeline: { value: team?.aiPrefs?.timeline ?? null, poles: 'rebuilding..win-now' },
+            spending: { value: team?.aiPrefs?.spending ?? null, poles: 'cap-frugal..spend-to-apron' },
+            rosterShape: { value: team?.aiPrefs?.rosterShape ?? null, poles: 'balanced..specialists-punt' },
+            assetTaste: { value: team?.aiPrefs?.assetTaste ?? null, poles: 'picks-prospects..proven-vets' },
+            risk: { value: team?.aiPrefs?.risk ?? null, poles: 'safe-floors..upside-swings' },
+            activity: { value: team?.aiPrefs?.activity ?? null, poles: 'set-and-forget..daily-grinder' },
+          },
+          notes: team?.aiPrefs?.notes ?? null,
+        },
       })
     },
   })
