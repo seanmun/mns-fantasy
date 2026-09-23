@@ -44,6 +44,7 @@ interface WnbaPlayer {
   salary: number | null
   age: number | null
   isRookie: boolean
+  redshirtUsed?: boolean
   injuryStatus: string | null
   injuryNote: string | null
 }
@@ -96,7 +97,7 @@ export function buildWnbaTools(token: string, userId: string) {
   const myTeam = betaZodTool({
     name: 'wnba_my_team',
     description:
-      "The member's roster for a date (default today, Eastern): each player's lineup slot (only ACTIVE players score, per date), position, salary, age, injury status and note, plus cap usage, the member's pending waiver queue, and their STRATEGY — dials (0-100) and a philosophy note that every piece of advice must fit. Past dates are locked; today and future dates are editable.",
+      "The member's roster for a date (default today, Eastern): each player's lineup slot — active (scores, holds a spot, counts against the cap), bench (same but no scoring), ir (no spot, still costs cap) or redshirt (no spot, NO cap hit) — plus position, salary, age, injury status and note, cap usage, the member's pending waiver queue, and their STRATEGY — dials (0-100) and a philosophy note that every piece of advice must fit. Past dates are locked; today and future dates are editable.",
     inputSchema: z.object({
       leagueId: z.string(),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -129,6 +130,7 @@ export function buildWnbaTools(token: string, userId: string) {
           age: p.age,
           salary: p.salary,
           slot: lineup?.slots[p.id] ?? p.slot ?? 'active',
+          redshirtUsed: p.redshirtUsed ?? false,
           injury: p.injuryStatus ? { status: p.injuryStatus, note: p.injuryNote } : null,
           gameOnDate: p.teamCode && lineup?.games[p.teamCode] ? lineup.games[p.teamCode] : null,
           seasonAvg: p.avg,
@@ -269,13 +271,13 @@ export function buildWnbaTools(token: string, userId: string) {
   const setLineup = betaZodTool({
     name: 'wnba_set_lineup',
     description:
-      "Move the member's own players between active, bench and ir for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. State the moves back in plain words after. The server enforces IR limits and locks — report its errors honestly.",
+      "Move the member's own players between active, bench, ir and redshirt for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. REDSHIRT IS DIFFERENT: it is a season-long act that costs a league fee to place and another to undo, only a rookie who has never played is eligible, and activating one spends the eligibility forever — never redshirt or activate without saying the fee out loud and getting a clear yes. State every move back in plain words after. The server enforces IR limits, eligibility and locks — report its errors honestly.",
     inputSchema: z.object({
       leagueId: z.string(),
       moves: z.array(
         z.object({
           playerId: z.string(),
-          slot: z.enum(['active', 'bench', 'ir']),
+          slot: z.enum(['active', 'bench', 'ir', 'redshirt']),
         })
       ),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
