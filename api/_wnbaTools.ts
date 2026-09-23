@@ -60,14 +60,14 @@ interface StatAvg {
   catD?: number | null
 }
 
-async function myTeam(token: string, leagueId: string, userId: string) {
+async function fetchMyTeam(token: string, leagueId: string, userId: string) {
   const r = await wnbaFetch(token, `/api/leagues/${leagueId}/teams`)
   if (!r.ok) return null
   const teams = r.body as Array<{ id: string; aiPrefs?: Record<string, unknown>; owners: Array<{ userId: string | null }> }>
   return teams.find((t) => t.owners.some((o) => o.userId === userId)) ?? null
 }
 const myTeamId = async (token: string, leagueId: string, userId: string) =>
-  (await myTeam(token, leagueId, userId))?.id ?? null
+  (await fetchMyTeam(token, leagueId, userId))?.id ?? null
 
 export function buildWnbaTools(token: string, userId: string) {
   const myLeagues = betaZodTool({
@@ -102,7 +102,7 @@ export function buildWnbaTools(token: string, userId: string) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const team = await myTeam(token, input.leagueId, userId)
+      const team = await fetchMyTeam(token, input.leagueId, userId)
       const teamId = team?.id ?? null
       if (!teamId) return 'This member does not own a team in that league.'
       const dateQ = input.date ? `&date=${input.date}` : ''
