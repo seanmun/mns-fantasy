@@ -1,5 +1,6 @@
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { z } from 'zod'
+import type { TokenSource } from './_draft.js'
 
 // Bumper's WNBA toolset. Same law as NFL: every call hits the game's
 // EXISTING member API with the CALLER's own Clerk token — the agent
@@ -15,7 +16,7 @@ function wnbaUrl(): string {
 }
 
 async function wnbaFetch(
-  token: string,
+  getToken: TokenSource,
   path: string,
   init: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
@@ -23,7 +24,7 @@ async function wnbaFetch(
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${await getToken()}`,
       ...(init.headers ?? {}),
     },
   })
@@ -64,23 +65,23 @@ interface StatAvg {
   catD?: number | null
 }
 
-async function fetchMyTeam(token: string, leagueId: string, userId: string) {
-  const r = await wnbaFetch(token, `/api/leagues/${leagueId}/teams`)
+async function fetchMyTeam(getToken: TokenSource, leagueId: string, userId: string) {
+  const r = await wnbaFetch(getToken, `/api/leagues/${leagueId}/teams`)
   if (!r.ok) return null
   const teams = r.body as Array<{ id: string; aiPrefs?: Record<string, unknown>; owners: Array<{ userId: string | null }> }>
   return teams.find((t) => t.owners.some((o) => o.userId === userId)) ?? null
 }
-const myTeamId = async (token: string, leagueId: string, userId: string) =>
-  (await fetchMyTeam(token, leagueId, userId))?.id ?? null
+const myTeamId = async (getToken: TokenSource, leagueId: string, userId: string) =>
+  (await fetchMyTeam(getToken, leagueId, userId))?.id ?? null
 
-export function buildWnbaTools(token: string, userId: string) {
+export function buildWnbaTools(getToken: TokenSource, userId: string) {
   const myLeagues = betaZodTool({
     name: 'wnba_my_leagues',
     description:
       "The member's WNBA dynasty leagues. Call first when the league isn't known — league ids feed every other WNBA tool.",
     inputSchema: z.object({}),
     run: async () => {
-      const r = await wnbaFetch(token, '/api/leagues')
+      const r = await wnbaFetch(getToken,'/api/leagues')
       if (!r.ok) return asResult(r)
       const leagues = r.body as Array<{ id: string; name: string; leaguePhase: string; seasonYear: number }>
       return JSON.stringify(
@@ -94,7 +95,7 @@ export function buildWnbaTools(token: string, userId: string) {
     description:
       'The league in one read: phase, current week, standings (wins, category points, salary per team, which is mine), cap ladder, roster rules including the LINEUP SHAPE (positionSlots — e.g. 2 C, 4 F, 4 G; empty means all-flex), the free-agency window (open = instant adds until first tip; waivers = claims clear next 8am ET as a snake), prize pot, and how many games each WNBA club still plays this league week — the streaming number. Start here for anything strategic.',
     inputSchema: z.object({ leagueId: z.string() }),
-    run: async (input) => asResult(await wnbaFetch(token, `/api/leagues/${input.leagueId}/overview`)),
+    run: async (input) => asResult(await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/overview`)),
   })
 
   const myTeam = betaZodTool({
@@ -106,14 +107,14 @@ export function buildWnbaTools(token: string, userId: string) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const team = await fetchMyTeam(token, input.leagueId, userId)
+      const team = await fetchMyTeam(getToken,input.leagueId, userId)
       const teamId = team?.id ?? null
       if (!teamId) return 'This member does not own a team in that league.'
       const dateQ = input.date ? `&date=${input.date}` : ''
       const [playersR, lineupR, waiversR] = await Promise.all([
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/players`),
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/lineup?teamId=${teamId}${dateQ}`),
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/waivers`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/players`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/lineup?teamId=${teamId}${dateQ}`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/waivers`),
       ])
       if (!playersR.ok) return asResult(playersR)
       const players = playersR.body as Array<WnbaPlayer & { avg: StatAvg | null }>
@@ -183,9 +184,9 @@ export function buildWnbaTools(token: string, userId: string) {
     }),
     run: async (input) => {
       const [playersR, statsR, teamsR] = await Promise.all([
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/players`),
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/stats`),
-        wnbaFetch(token, `/api/leagues/${input.leagueId}/teams`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/players`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/stats`),
+        wnbaFetch(getToken,`/api/leagues/${input.leagueId}/teams`),
       ])
       if (!playersR.ok) return asResult(playersR)
       const players = playersR.body as WnbaPlayer[]
@@ -234,8 +235,8 @@ export function buildWnbaTools(token: string, userId: string) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const teamId = await myTeamId(token, input.leagueId, userId)
-      const listR = await wnbaFetch(token, `/api/leagues/${input.leagueId}/matchups`)
+      const teamId = await myTeamId(getToken,input.leagueId, userId)
+      const listR = await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/matchups`)
       if (!listR.ok) return asResult(listR)
       const list = listR.body as { matchups: Array<{ id: string; homeTeamId: string; awayTeamId: string }> }
       const mineM =
@@ -244,7 +245,7 @@ export function buildWnbaTools(token: string, userId: string) {
       if (!mineM) return 'No matchups this week.'
       const dateQ = input.date ? `&date=${input.date}` : ''
       return asResult(
-        await wnbaFetch(token, `/api/leagues/${input.leagueId}/matchups?matchupId=${mineM.id}${dateQ}`)
+        await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/matchups?matchupId=${mineM.id}${dateQ}`)
       )
     },
   })
@@ -261,7 +262,7 @@ export function buildWnbaTools(token: string, userId: string) {
     }),
     run: async (input) =>
       asResult(
-        await wnbaFetch(token, `/api/leagues/${input.leagueId}/trades`, {
+        await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/trades`, {
           method: 'POST',
           body: JSON.stringify({
             action: 'evaluate',
@@ -290,7 +291,7 @@ export function buildWnbaTools(token: string, userId: string) {
     run: async (input) => {
       const results: Array<{ playerId: string; ok: boolean; error?: string }> = []
       for (const move of input.moves) {
-        const r = await wnbaFetch(token, `/api/leagues/${input.leagueId}/roster`, {
+        const r = await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/roster`, {
           method: 'POST',
           body: JSON.stringify({ playerId: move.playerId, slot: move.slot, ...(input.date ? { date: input.date } : {}) }),
         })
@@ -315,7 +316,7 @@ export function buildWnbaTools(token: string, userId: string) {
     }),
     run: async (input) =>
       asResult(
-        await wnbaFetch(token, `/api/leagues/${input.leagueId}/waivers`, {
+        await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/waivers`, {
           method: 'POST',
           body: JSON.stringify({
             addPlayerIds: [input.addPlayerId],
@@ -332,7 +333,7 @@ export function buildWnbaTools(token: string, userId: string) {
     inputSchema: z.object({ leagueId: z.string(), playerId: z.string() }),
     run: async (input) =>
       asResult(
-        await wnbaFetch(token, `/api/leagues/${input.leagueId}/roster`, {
+        await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/roster`, {
           method: 'POST',
           body: JSON.stringify({ playerId: input.playerId, slot: 'drop' }),
         })
@@ -354,7 +355,7 @@ export function buildWnbaTools(token: string, userId: string) {
     }),
     run: async (input) =>
       asResult(
-        await wnbaFetch(token, `/api/leagues/${input.leagueId}/trades`, {
+        await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/trades`, {
           method: 'POST',
           body: JSON.stringify({
             action: 'propose',

@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { z } from 'zod'
-import { applyCors, requireUser } from './_draft.js'
+import { applyCors, refreshingToken, requireUser, type TokenSource } from './_draft.js'
 import { buildWnbaTools } from './_wnbaTools.js'
 
 // The platform chat agent — one conversation across the member's games,
@@ -27,7 +27,7 @@ function nflUrl(): string {
 }
 
 async function nflFetch(
-  token: string,
+  getToken: TokenSource,
   path: string,
   init: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
@@ -35,7 +35,7 @@ async function nflFetch(
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${await getToken()}`,
       ...(init.headers ?? {}),
     },
   })
@@ -53,14 +53,14 @@ const asResult = (r: { ok: boolean; status: number; body: unknown }): string =>
 
 type Game = { gameId: string; kickoffAt: string; status: string; spread: number | null; open: boolean; offBoard: boolean; home: { id: string; nickname: string } | null; away: { id: string; nickname: string } | null; homeScore: number | null; awayScore: number | null }
 
-function buildTools(token: string) {
+function buildTools(getToken: TokenSource) {
   const listMyPools = betaZodTool({
     name: 'nfl_list_my_pools',
     description:
       "The member's NFL pools and their entries. Call this first when the pool is not yet known — pool ids and entry ids from here feed every other NFL tool.",
     inputSchema: z.object({}),
     run: async () => {
-      const r = await nflFetch(token, '/api/pools')
+      const r = await nflFetch(getToken,'/api/pools')
       if (!r.ok) return asResult(r)
       const data = r.body as { pools: Array<{ pool: Record<string, unknown>; entry: { id: string; entryName: string } }> }
       return JSON.stringify(
@@ -87,7 +87,7 @@ function buildTools(token: string) {
     }),
     run: async (input) => {
       const q = input.week != null ? `?week=${input.week}` : ''
-      const r = await nflFetch(token, `/api/pools/${input.poolId}/picks${q}`)
+      const r = await nflFetch(getToken,`/api/pools/${input.poolId}/picks${q}`)
       if (!r.ok) return asResult(r)
       const d = r.body as {
         pool: Record<string, unknown>
@@ -145,7 +145,7 @@ function buildTools(token: string) {
     description: 'Pool standings: rank, entry, total points, key-pick score, weekly results.',
     inputSchema: z.object({ poolId: z.string() }),
     run: async (input) => {
-      const r = await nflFetch(token, `/api/pools/${input.poolId}/standings`)
+      const r = await nflFetch(getToken,`/api/pools/${input.poolId}/standings`)
       if (!r.ok) return asResult(r)
       const d = r.body as { final?: boolean; rows: Array<{ rank: number; entryName: string; ownerName: string | null; totalPoints: number; keyPickScore: number; isMine: boolean }> }
       return JSON.stringify({
@@ -179,7 +179,7 @@ function buildTools(token: string) {
       ),
     }),
     run: async (input) => {
-      const r = await nflFetch(token, `/api/pools/${input.poolId}/picks`, {
+      const r = await nflFetch(getToken,`/api/pools/${input.poolId}/picks`, {
         method: 'PUT',
         body: JSON.stringify({ entryId: input.entryId, week: input.week, picks: input.picks }),
       })
@@ -197,7 +197,7 @@ function buildTools(token: string) {
       week: z.number().int(),
     }),
     run: async (input) => {
-      const r = await nflFetch(token, `/api/pools/${input.poolId}/picks`, {
+      const r = await nflFetch(getToken,`/api/pools/${input.poolId}/picks`, {
         method: 'POST',
         body: JSON.stringify({ entryId: input.entryId, week: input.week }),
       })
@@ -249,7 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const userId = await requireUser(req)
   if (!userId) return res.status(401).json({ error: 'Sign in to continue.' })
-  const token = req.headers.authorization!.replace('Bearer ', '')
+  const getToken = refreshingToken(req.headers.authorization!.replace('Bearer ', ''))
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured.' })
@@ -290,7 +290,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       max_tokens: 4096,
       max_iterations: 8,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      tools: [...buildTools(token), ...buildWnbaTools(token, userId)],
+      tools: [...buildTools(getToken), ...buildWnbaTools(getToken, userId)],
       messages,
     })
 

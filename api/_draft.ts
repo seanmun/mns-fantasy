@@ -40,6 +40,56 @@ export async function requireUser(req: VercelRequest): Promise<string | null> {
   }
 }
 
+// A Clerk session token lives 60 seconds and a Bumper run can outlive
+// it. Tools draw their token through this instead of holding the
+// caller's: it hands back the same token until it is about to expire,
+// then mints a fresh one for the SAME session — same member, same
+// authority — and keeps the stale one if Clerk refuses, so a late
+// call fails with an honest 401 rather than a forged identity.
+export type TokenSource = () => Promise<string>
+
+export function refreshingToken(token: string): TokenSource {
+  let current = token
+  let expiresAt = expiryOf(token)
+  let inflight: Promise<string> | null = null
+  const mint = async (): Promise<string> => {
+    const sid = claimsOf(current).sid
+    if (!sid) return current
+    try {
+      const res = await fetch(`https://api.clerk.com/v1/sessions/${sid}/tokens`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      })
+      const data = (await res.json()) as { jwt?: string }
+      if (res.ok && data.jwt) {
+        current = data.jwt
+        expiresAt = expiryOf(current)
+      }
+    } catch {
+      // keep the token we have
+    }
+    return current
+  }
+  return async () => {
+    if (Date.now() < expiresAt - 15_000) return current
+    if (!inflight) inflight = mint().finally(() => { inflight = null })
+    return inflight
+  }
+}
+
+function claimsOf(jwt: string): { sid?: string; exp?: number } {
+  try {
+    return JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString())
+  } catch {
+    return {}
+  }
+}
+const expiryOf = (jwt: string): number => (claimsOf(jwt).exp ?? 0) * 1000
+
 // Games call server-to-server for privileged actions (create a draft,
 // replace the item pool) using the shared service secret.
 export function isTrustedService(req: VercelRequest): boolean {
