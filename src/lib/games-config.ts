@@ -64,7 +64,7 @@ export const GAMES: GameConfig[] = [
     icon: '\u{1F3C0}',
     accentColor: '#f97316',
     startDate: '2026-10-20',
-    endDate: '2027-04-12',
+    endDate: '2027-04-11',
   },
   {
     slug: 'golf-masters-2026',
