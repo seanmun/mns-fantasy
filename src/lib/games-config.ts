@@ -53,6 +53,20 @@ export const GAMES: GameConfig[] = [
     endDate: '2026-09-30',
   },
   {
+    // ESPN counts 2026-27 as season 2027; the app's slug follows it.
+    slug: 'mns-nba-2027',
+    name: 'MNS NBA Dynasty',
+    shortName: 'NBA',
+    description: 'Money Never Sleeps NBA. Dynasty keeper league with the real salary cap, aprons that bill at tip-off, franchise tags, and a prize pool that grows with every fee.',
+    url: 'https://nba.mnsfantasy.com',
+    status: 'active',
+    season: '2026-27',
+    icon: '\u{1F3C0}',
+    accentColor: '#f97316',
+    startDate: '2026-10-20',
+    endDate: '2027-04-12',
+  },
+  {
     slug: 'golf-masters-2026',
     aliases: ['golf-pga-2026'],
     name: 'PGA Fantasy Golf',

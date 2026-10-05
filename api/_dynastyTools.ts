@@ -2,25 +2,35 @@ import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { z } from 'zod'
 import type { TokenSource } from './_draft.js'
 
-// Bumper's WNBA toolset. Same law as NFL: every call hits the game's
-// EXISTING member API with the CALLER's own Clerk token — the agent
-// sees and does exactly what this member could in the UI, no service
-// credential anywhere. Wide reads for reasoning, precise writes for
-// action, and one calculator so the numbers are never guessed.
+// Bumper's DYNASTY toolset, one build per sport (wnba, nba). Same law
+// as NFL: every call hits the game's EXISTING member API with the
+// CALLER's own Clerk token — the agent sees and does exactly what this
+// member could in the UI, no service credential anywhere. Wide reads
+// for reasoning, precise writes for action, and one calculator so the
+// numbers are never guessed. The two sports run the same app on two
+// subdomains; the only differences here are the tool prefix, the API
+// URL, and the league's name in the prose.
 
-function wnbaUrl(): string {
-  const explicit = process.env.WNBA_API_URL
+export type DynastySport = 'wnba' | 'nba'
+
+const LABEL: Record<DynastySport, string> = { wnba: 'WNBA', nba: 'NBA' }
+
+function apiUrl(sport: DynastySport): string {
+  const explicit = process.env[`${sport.toUpperCase()}_API_URL`]
   if (explicit) return explicit
-  if (process.env.VERCEL_ENV === 'production') return 'https://wnba.mnsfantasy.com'
-  throw new Error('WNBA_API_URL is not set — refusing to fall back to production outside production.')
+  if (process.env.VERCEL_ENV === 'production') return `https://${sport}.mnsfantasy.com`
+  throw new Error(
+    `${sport.toUpperCase()}_API_URL is not set — refusing to fall back to production outside production.`
+  )
 }
 
-async function wnbaFetch(
+async function apiFetch(
+  sport: DynastySport,
   getToken: TokenSource,
   path: string,
   init: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
-  const res = await fetch(`${wnbaUrl()}${path}`, {
+  const res = await fetch(`${apiUrl(sport)}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -35,7 +45,7 @@ async function wnbaFetch(
 const asResult = (r: { ok: boolean; status: number; body: unknown }): string =>
   r.ok ? JSON.stringify(r.body) : `Request failed (${r.status}): ${JSON.stringify(r.body)}`
 
-interface WnbaPlayer {
+interface DynastyPlayer {
   id: string
   name: string
   position: string | null
@@ -65,20 +75,22 @@ interface StatAvg {
   catD?: number | null
 }
 
-async function fetchMyTeam(getToken: TokenSource, leagueId: string, userId: string) {
-  const r = await wnbaFetch(getToken, `/api/leagues/${leagueId}/teams`)
+async function fetchMyTeam(sport: DynastySport, getToken: TokenSource, leagueId: string, userId: string) {
+  const r = await apiFetch(sport, getToken, `/api/leagues/${leagueId}/teams`)
   if (!r.ok) return null
   const teams = r.body as Array<{ id: string; aiPrefs?: Record<string, unknown>; owners: Array<{ userId: string | null }> }>
   return teams.find((t) => t.owners.some((o) => o.userId === userId)) ?? null
 }
-const myTeamId = async (getToken: TokenSource, leagueId: string, userId: string) =>
-  (await fetchMyTeam(getToken, leagueId, userId))?.id ?? null
+const myTeamId = async (sport: DynastySport, getToken: TokenSource, leagueId: string, userId: string) =>
+  (await fetchMyTeam(sport, getToken, leagueId, userId))?.id ?? null
 
-export function buildWnbaTools(getToken: TokenSource, userId: string) {
+export function buildDynastyTools(sport: DynastySport, getToken: TokenSource, userId: string) {
+  const L = LABEL[sport]
+  const wnbaFetch = (getToken: TokenSource, path: string, init?: RequestInit) => apiFetch(sport, getToken, path, init)
   const myLeagues = betaZodTool({
-    name: 'wnba_my_leagues',
+    name: `${sport}_my_leagues`,
     description:
-      "The member's WNBA dynasty leagues. Call first when the league isn't known — league ids feed every other WNBA tool.",
+      `The member's ${L} dynasty leagues. Call first when the league isn't known — league ids feed every other ${L} tool.`,
     inputSchema: z.object({}),
     run: async () => {
       const r = await wnbaFetch(getToken,'/api/leagues')
@@ -91,15 +103,15 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const overview = betaZodTool({
-    name: 'wnba_league_overview',
+    name: `${sport}_league_overview`,
     description:
-      'The league in one read: phase, current week, standings (wins, category points, salary per team, which is mine), cap ladder, roster rules including the LINEUP SHAPE (positionSlots — e.g. 2 C, 4 F, 4 G; empty means all-flex), the free-agency window (open = instant adds until first tip; waivers = claims clear next 8am ET as a snake), prize pot, and how many games each WNBA club still plays this league week — the streaming number. Start here for anything strategic.',
+      `The league in one read: phase, current week, standings (wins, category points, salary per team, which is mine), cap ladder, roster rules including the LINEUP SHAPE (positionSlots — e.g. 2 C, 4 F, 4 G; empty means all-flex), the free-agency window (open = instant adds until first tip; waivers = claims clear next 8am ET as a snake), prize pot, and how many games each ${L} club still plays this league week — the streaming number. Start here for anything strategic.`,
     inputSchema: z.object({ leagueId: z.string() }),
     run: async (input) => asResult(await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/overview`)),
   })
 
   const myTeam = betaZodTool({
-    name: 'wnba_my_team',
+    name: `${sport}_my_team`,
     description:
       "The member's roster for a date (default today, Eastern): each player's lineup slot — active (scores, holds a spot, counts against the cap), bench (same but no scoring), ir (no spot, still costs cap) or redshirt (no spot, NO cap hit) — plus position, salary, age, injury status and note, cap usage, the member's pending waiver queue, and their STRATEGY — dials (0-100) and a philosophy note that every piece of advice must fit. Past dates are locked; today and future dates are editable.",
     inputSchema: z.object({
@@ -107,7 +119,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const team = await fetchMyTeam(getToken,input.leagueId, userId)
+      const team = await fetchMyTeam(sport, getToken, input.leagueId, userId)
       const teamId = team?.id ?? null
       if (!teamId) return 'This member does not own a team in that league.'
       const dateQ = input.date ? `&date=${input.date}` : ''
@@ -117,7 +129,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
         wnbaFetch(getToken,`/api/leagues/${input.leagueId}/waivers`),
       ])
       if (!playersR.ok) return asResult(playersR)
-      const players = playersR.body as Array<WnbaPlayer & { avg: StatAvg | null }>
+      const players = playersR.body as Array<DynastyPlayer & { avg: StatAvg | null }>
       const lineup = lineupR.ok
         ? (lineupR.body as { date: string; locked: boolean; slots: Record<string, string>; games: Record<string, { opp: string; home: boolean; tip: string; state: string }> })
         : null
@@ -167,7 +179,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const playerPool = betaZodTool({
-    name: 'wnba_players',
+    name: `${sport}_players`,
     description:
       'Search the player pool with stats: filter by name, position, free agents only, salary ceiling; sort by a stat over a range (season, last30, last10). Each row carries age, salary, injury, owner, per-game averages, CAT (nine-category z-score value, 0 = league average) and CAT$ (CAT per $1M — value density). Use freeAgentsOnly for pickup targets; drop it to scout other rosters for trades. Keep limit small; ask again with different filters rather than pulling everything.',
     inputSchema: z.object({
@@ -189,7 +201,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
         wnbaFetch(getToken,`/api/leagues/${input.leagueId}/teams`),
       ])
       if (!playersR.ok) return asResult(playersR)
-      const players = playersR.body as WnbaPlayer[]
+      const players = playersR.body as DynastyPlayer[]
       const ranges = (statsR.ok ? statsR.body : {}) as Record<string, Record<string, StatAvg> | null>
       const teams = (teamsR.ok ? teamsR.body : []) as Array<{ id: string; name: string }>
       const teamName = new Map(teams.map((t) => [t.id, t.name]))
@@ -227,7 +239,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const matchup = betaZodTool({
-    name: 'wnba_matchup',
+    name: `${sport}_matchup`,
     description:
       "The member's current matchup: the category scoreboard (who leads each of the nine), both rosters with each player's week so far, and one DAY of the week in detail (slots, who plays, box lines) — date defaults to today.",
     inputSchema: z.object({
@@ -235,7 +247,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
     run: async (input) => {
-      const teamId = await myTeamId(getToken,input.leagueId, userId)
+      const teamId = await myTeamId(sport, getToken, input.leagueId, userId)
       const listR = await wnbaFetch(getToken,`/api/leagues/${input.leagueId}/matchups`)
       if (!listR.ok) return asResult(listR)
       const list = listR.body as { matchups: Array<{ id: string; homeTeamId: string; awayTeamId: string }> }
@@ -251,7 +263,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const evaluateTrade = betaZodTool({
-    name: 'wnba_evaluate_trade',
+    name: `${sport}_evaluate_trade`,
     description:
       'The trade calculator — ALWAYS run this before recommending or proposing any deal; never do the math yourself. Returns the per-game category swing from the MEMBER\'s side, the CAT delta, and both teams\' salary and roster verdicts (over the hard cap or roster limit = the deal cannot execute). Dry run, changes nothing.',
     inputSchema: z.object({
@@ -275,9 +287,9 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const setLineup = betaZodTool({
-    name: 'wnba_set_lineup',
+    name: `${sport}_set_lineup`,
     description:
-      "Move the member's own players between active, bench, ir and redshirt for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. If the league names a lineup shape, every active player must fit a distinct slot she qualifies for — the server refuses a move that leaves someone unplaceable and says which slots are open. REDSHIRT IS DIFFERENT: a season-long act costing a league fee to place and another to undo, open only to a rookie (yearsPro 0) who has never played AND is actually with a WNBA club (leaguePresence 'rostered'); activating spends the eligibility forever — never redshirt or activate without saying the fee out loud and getting a clear yes. INTERNATIONAL is the stash for a player who is NOT with a WNBA club (leaguePresence 'rights_only' or 'absent') and has not played here — any experience level, no fee, and she returns free whenever she reports. State every move back in plain words after. The server enforces IR limits, eligibility and locks — report its errors honestly.",
+      `Move the member's own players between active, bench, ir and redshirt for a date (default today; future dates stick when the day arrives; past dates are locked). Only ACTIVE players score. If the league names a lineup shape, every active player must fit a distinct slot they qualify for — the server refuses a move that leaves someone unplaceable and says which slots are open. REDSHIRT IS DIFFERENT: a season-long act costing a league fee to place and another to undo, open only to a rookie (yearsPro 0) who has never played AND is actually with a ${L} club (leaguePresence 'rostered'); activating spends the eligibility forever — never redshirt or activate without saying the fee out loud and getting a clear yes. INTERNATIONAL is the stash for a player who is NOT with a ${L} club (leaguePresence 'rights_only' or 'absent') and has not played here — any experience level, no fee, and they return free whenever they report. State every move back in plain words after. The server enforces IR limits, eligibility and locks — report its errors honestly.`,
     inputSchema: z.object({
       leagueId: z.string(),
       moves: z.array(
@@ -306,9 +318,9 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const addPlayer = betaZodTool({
-    name: 'wnba_add_player',
+    name: `${sport}_add_player`,
     description:
-      "Add a free agent (naming who to drop unless the roster has room). Before the day's first tip this executes INSTANTLY; after tip it queues a waiver claim that clears next 8am ET in the snake. Check wnba_league_overview's freeAgency window first and TELL the member which of the two will happen before calling. Only call once they've clearly said to do it.",
+      `Add a free agent (naming who to drop unless the roster has room). Before the day's first tip this executes INSTANTLY; after tip it queues a waiver claim that clears next 8am ET in the snake. Check ${sport}_league_overview's freeAgency window first and TELL the member which of the two will happen before calling. Only call once they've clearly said to do it.`,
     inputSchema: z.object({
       leagueId: z.string(),
       addPlayerId: z.string(),
@@ -327,7 +339,7 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const dropPlayer = betaZodTool({
-    name: 'wnba_drop_player',
+    name: `${sport}_drop_player`,
     description:
       'Drop one of the member\'s players to free agency, effective immediately. Destructive — only after the member clearly confirms THE NAMED PLAYER.',
     inputSchema: z.object({ leagueId: z.string(), playerId: z.string() }),
@@ -341,9 +353,9 @@ export function buildWnbaTools(getToken: TokenSource, userId: string) {
   })
 
   const proposeTrade = betaZodTool({
-    name: 'wnba_propose_trade',
+    name: `${sport}_propose_trade`,
     description:
-      "Send a trade proposal to another team (players and/or future picks — pick ids look like pick:2027:r1:<teamId> and come from the trade page's board). Run wnba_evaluate_trade FIRST, state the full deal and its effects back to the member, and only call this on their clear go-ahead. The other owner must accept before anything moves.",
+      `Send a trade proposal to another team (players and/or future picks — pick ids look like pick:2027:r1:<teamId> and come from the trade page's board). Run ${sport}_evaluate_trade FIRST, state the full deal and its effects back to the member, and only call this on their clear go-ahead. The other owner must accept before anything moves.`,
     inputSchema: z.object({
       leagueId: z.string(),
       toTeamId: z.string(),
