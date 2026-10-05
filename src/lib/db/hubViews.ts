@@ -9,11 +9,13 @@ import type { NeonQueryFunction } from '@neondatabase/serverless'
 const LEAGUES_UNION = `
   select * from ncaa.hub_leagues
   union all select * from wnba.hub_leagues
+  union all select * from nba.hub_leagues
   union all select * from golf.hub_leagues`
 
 const MEMBERS_UNION = `
   select * from ncaa.hub_members
   union all select * from wnba.hub_members
+  union all select * from nba.hub_members
   union all select * from golf.hub_members`
 
 export interface HubLeagueRow {

@@ -19,6 +19,7 @@ type Db = NeonHttpDatabase<any>
 const GAME_BRANDS: Record<string, { name: string; noun: string }> = {
   golf: { name: 'MNS Golf', noun: 'golfer' },
   wnba: { name: 'MNS WNBA', noun: 'player' },
+  nba: { name: 'MNS NBA', noun: 'player' },
   nfl: { name: 'MNS NFL', noun: 'player' },
   ncaa: { name: 'MNS NCAA', noun: 'player' },
 }

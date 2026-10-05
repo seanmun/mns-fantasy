@@ -3,10 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { z } from 'zod'
 import { applyCors, refreshingToken, requireUser, type TokenSource } from './_draft.js'
-import { buildWnbaTools } from './_wnbaTools.js'
+import { buildDynastyTools } from './_dynastyTools.js'
 
 // The platform chat agent — one conversation across the member's games,
-// NFL pick'em and WNBA dynasty so far. The privacy model is structural, not prompt-deep: every
+// NFL pick'em and the WNBA and NBA dynasty leagues so far. The privacy model is structural, not prompt-deep: every
 // tool call goes to a game's EXISTING member API carrying the CALLER'S
 // OWN Clerk token, so the agent can only ever see or do what that
 // member could in the UI. Hidden-picks-until-deadline, pick validation,
@@ -231,17 +231,17 @@ Ground rules:
 - PLAIN TEXT ONLY — your replies are shown verbatim and often read aloud. Never use markdown: no asterisks, underscores, backticks, hashes or bracket links. For lists, plain lines. Say spreads naturally: "Giants plus 3.5", "Eagles minus 7".
 - You cannot change settings, manage pools or leagues, invite people, or see anything a member couldn't. If asked, point them to the pool or league page.
 
-WNBA dynasty leagues (wnba_* tools):
+WNBA and NBA dynasty leagues (wnba_* and nba_* tools — the same game on two subdomains; use the prefix of the league the member is in, never mix them):
 - Nine-category matchups: PTS, REB, AST, STL, BLK, 3PM, FG%, FT%, A/TO. Only ACTIVE players score, judged per DATE — lineups set for a future date stick when the day arrives; past days are locked.
 - Free agency has two gears: OPEN (instant adds) until the day's first tip, then WAIVERS — queued claims clear next 8am Eastern as a snake by waiver order. Always check the window and tell the member which gear applies before adding anyone.
-- CAT is a player's nine-category value (z-score, 0 = league average); CAT$ is CAT per million of salary — the value-per-dollar number for a salary-cap league. Use wnba_players sorted by catD to find bargains and wnba_evaluate_trade for EVERY trade's math — never arithmetic by hand.
+- CAT is a player's nine-category value (z-score, 0 = league average); CAT$ is CAT per million of salary — the value-per-dollar number for a salary-cap league. Use <sport>_players sorted by catD to find bargains and <sport>_evaluate_trade for EVERY trade's math — never arithmetic by hand.
 - Salary cap has a ladder: floor, aprons with fees, and a HARD cap no move may cross. A team over the roster limit is frozen out of adds until it drops or IRs someone (IR doesn't hold a roster spot).
-- Some leagues name a lineup SHAPE (2 C, 4 F, 4 G); others run all-flex. Where a shape exists, every starter must fit a distinct slot she qualifies for, dual-eligible players float between them, and the server refuses a move that leaves someone unplaceable — read positionSlots from the overview before advising on lineups.
+- Some leagues name a lineup SHAPE (2 C, 4 F, 4 G); others run all-flex. Where a shape exists, every starter must fit a distinct slot they qualify for, dual-eligible players float between them, and the server refuses a move that leaves someone unplaceable — read positionSlots from the overview before advising on lineups.
 - Five slots, and the difference matters: ACTIVE scores; BENCH doesn't; IR frees a roster spot but STILL counts against the cap; REDSHIRT and INTERNATIONAL free the spot AND the cap room.
-- Redshirt and international stash look alike from the box score — both are players with no games — but they are opposites. Redshirt is a ROOKIE who is with a WNBA club and hasn't debuted: it costs a fee to place and another to activate, and activating spends it forever, so always say the fee and the one-way nature and act only on a clear yes. International is for a player who ISN'T with a WNBA club at all, at any experience level: no fee, and she returns free when she reports. Each player's leaguePresence tells you which she is — never guess from games played alone.
+- Redshirt and international stash look alike from the box score — both are players with no games — but they are opposites. Redshirt is a ROOKIE who is with a club in the league and hasn't debuted: it costs a fee to place and another to activate, and activating spends it forever, so always say the fee and the one-way nature and act only on a clear yes. International is for a player who ISN'T with a club in the league at all, at any experience level: no fee, and they return free when they report. Each player's leaguePresence tells you which they are — never guess from games played alone.
 - The strategic reads for advice: gamesLeftThisWeek from the overview (a player with more games left is worth more this week), age (veterans vs youth for dynasty timelines), injury status and note, and each team's category production from the overview — a team weak in a category is a trade partner for someone with a surplus.
 - Mutations follow the same rule as picks: state the move back in plain words, act on a clear go-ahead. Trades especially — evaluate, recite the deal and both sides' cap/roster effects, then propose only on their yes.
-- STRATEGY DIALS: wnba_my_team returns the member's strategy — six 0-100 dials and a philosophy note, the note outranking the dials. Fit every suggestion to them: a rebuilder hears about picks and young CAT$ bargains, a win-now spender hears about the best player available; a punt team's weak category is a feature, not a problem. Null dials mean unset — advise neutrally and, once per conversation at most, mention the dials exist in team settings. Each team's strategy is private: never reveal, compare or assume another team's, and when advising on a trade remember the OTHER owner will judge it by their own lights — a deal can be right for both sides.`
+- STRATEGY DIALS: <sport>_my_team returns the member's strategy — six 0-100 dials and a philosophy note, the note outranking the dials. Fit every suggestion to them: a rebuilder hears about picks and young CAT$ bargains, a win-now spender hears about the best player available; a punt team's weak category is a feature, not a problem. Null dials mean unset — advise neutrally and, once per conversation at most, mention the dials exist in team settings. Each team's strategy is private: never reveal, compare or assume another team's, and when advising on a trade remember the OTHER owner will judge it by their own lights — a deal can be right for both sides.`
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return
@@ -276,10 +276,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       content: `The member is currently viewing ${context.game === 'nfl' || !context.game ? 'NFL' : context.game} pool id ${context.poolId.slice(0, 64)}. When they say "this pool", "this week" or similar, they mean that pool — resolve it with the tools rather than asking which pool they mean.`,
     } as unknown as Anthropic.Beta.BetaMessageParam)
   }
-  if (context?.leagueId && typeof context.leagueId === 'string' && context.game === 'wnba') {
+  if (
+    context?.leagueId &&
+    typeof context.leagueId === 'string' &&
+    (context.game === 'wnba' || context.game === 'nba')
+  ) {
+    const label = context.game.toUpperCase()
     messages.push({
       role: 'system',
-      content: `The member is currently viewing WNBA league id ${context.leagueId.slice(0, 64)}. When they say "my team", "this league", "my matchup" or similar, they mean that league — resolve with the wnba tools rather than asking which league.`,
+      content: `The member is currently viewing ${label} league id ${context.leagueId.slice(0, 64)}. When they say "my team", "this league", "my matchup" or similar, they mean that league — resolve with the ${context.game}_* tools rather than asking which league.`,
     } as unknown as Anthropic.Beta.BetaMessageParam)
   }
 
@@ -290,7 +295,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       max_tokens: 4096,
       max_iterations: 8,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      tools: [...buildTools(getToken), ...buildWnbaTools(getToken, userId)],
+      tools: [
+        ...buildTools(getToken),
+        ...buildDynastyTools('wnba', getToken, userId),
+        ...buildDynastyTools('nba', getToken, userId),
+      ],
       messages,
     })
 
